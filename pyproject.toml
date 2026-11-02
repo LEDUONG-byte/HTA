@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hta"
+version = "0.1.0"
+description = "SPC multi-defect dashboard backend and assets"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "numpy>=2.1",
+    "openpyxl>=3.1",
+    "pandas>=2.2",
+    "uvicorn[standard]>=0.34",
+]
+
+[tool.setuptools]
+py-modules = ["main", "launcher", "simulator"]
+include-package-data = true
+
+[tool.setuptools.data-files]
+"css" = ["css/**/*"]
+"img" = ["img/**/*"]
+"js" = ["js/**/*"]
+"lib" = ["lib/**/*"]
+"scss" = ["scss/**/*"]
+"template" = ["template/**/*"]
