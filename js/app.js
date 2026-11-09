@@ -137,6 +137,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const paneBatches = document.getElementById("pane-defect-batches");
     const paneViolations = document.getElementById("pane-defect-violations");
 
+    const batchCount = document.getElementById("single-batch-count");
+    const violCount = document.getElementById("single-violation-count");
+
     function switchDefectTab(tabKey) {
       [tabCharts, tabBatches, tabViolations].forEach(btn => btn?.classList.remove("active"));
       [paneCharts, paneBatches, paneViolations].forEach(pane => pane?.classList.remove("active"));
@@ -144,13 +147,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (tabKey === "charts") {
         tabCharts?.classList.add("active");
         paneCharts?.classList.add("active");
+        if (batchCount) batchCount.style.display = "none";
+        if (violCount) violCount.style.display = "none";
         resizeAllCharts();
       } else if (tabKey === "batches") {
         tabBatches?.classList.add("active");
         paneBatches?.classList.add("active");
+        if (batchCount) batchCount.style.display = "inline-flex";
+        if (violCount) violCount.style.display = "none";
       } else if (tabKey === "violations") {
         tabViolations?.classList.add("active");
         paneViolations?.classList.add("active");
+        if (batchCount) batchCount.style.display = "none";
+        if (violCount) violCount.style.display = "inline-flex";
       }
     }
 
@@ -349,6 +358,20 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         btn.addEventListener("click", () => activateDefectView(defect.id));
         submenu.appendChild(btn);
+      });
+    } else {
+      // Cập nhật trạng thái đèn báo động cho từng lỗi
+      defects.forEach(defect => {
+        const btn = submenu.querySelector(`[data-defect-id="${defect.id}"]`);
+        if (btn) {
+          const dot = btn.querySelector(".submenu-dot");
+          if (dot) {
+            let dotClass = "good";
+            if (defect.status === "DANGER") dotClass = "danger";
+            else if (defect.status === "WARNING") dotClass = "warning";
+            dot.className = `submenu-dot ${dotClass}`;
+          }
+        }
       });
     }
 
@@ -655,6 +678,13 @@ document.addEventListener("DOMContentLoaded", () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        hover: {
+          mode: "index",
+          intersect: false,
+          onHover: (e, el) => {
+            canvas.style.cursor = el && el.length ? "pointer" : "default";
+          }
+        },
         legend: {
           display: true,
           position: "top",
@@ -728,6 +758,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
+
+    canvas.onclick = function(evt) {
+      if (!chartInstances["overview-corr"]) return;
+      const activePoints = chartInstances["overview-corr"].getElementsAtEvent(evt);
+      if (activePoints && activePoints.length > 0) {
+        const idx = activePoints[0]._index;
+        const targetDefect = defects[idx];
+        if (targetDefect) {
+          activateDefectView(targetDefect.id);
+        }
+      }
+    };
 
     chartSignatures["overview-corr"] = signature;
   }
@@ -965,8 +1007,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="occ-time-badge">${escapeHtml(alert.timestamp || "Vừa xong")}</span>
           </div>
           <div class="occ-meta-row">
-            <span class="occ-batch-chip">Lô: ${escapeHtml(alert.batchId || "--")}</span>
-            <span class="occ-batch-chip">Đo: ${alert.value ?? "--"}</span>
+            <span class="occ-batch-chip">Lô ${escapeHtml(alert.batchId || "--")}</span>
+            <span style="color: var(--text-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(alert.message || (alert.value != null ? `Đo: ${alert.value}` : 'Vi phạm SPC'))}</span>
           </div>
         </div>
       `;
@@ -1403,6 +1445,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const usl = defect.usl;
+    const lsl = defect.lsl;
+
     tbody.innerHTML = batches.map(batch => {
       const vals = batch.values || {};
       const oosCount = batch.oosCount || 0;
@@ -1410,20 +1455,24 @@ document.addEventListener("DOMContentLoaded", () => {
         ? `<span class="pill-badge pill-danger">${oosCount} mẫu</span>`
         : `<span class="pill-badge pill-good">0</span>`;
 
+      const oosKeys = new Set((batch.outOfSpecSamples || []).map(s => s.sampleId));
+
+      const xCells = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => {
+        const k = `X${i}`;
+        const v = vals[k];
+        if (v == null) return `<td>-</td>`;
+        const isOos = oosKeys.has(k) || (usl != null && v > usl) || (lsl != null && v < lsl);
+        if (isOos) {
+          return `<td><span class="cell-oos" title="${k}: ${v} ngoài quy chuẩn">${v}</span></td>`;
+        }
+        return `<td>${v}</td>`;
+      }).join("");
+
       return `
         <tr>
           <td class="lot-code-cell">${escapeHtml(batch.batchId || "--")}</td>
           <td>${escapeHtml(batch.timestamp || "--")}</td>
-          <td>${vals.X1 ?? "-"}</td>
-          <td>${vals.X2 ?? "-"}</td>
-          <td>${vals.X3 ?? "-"}</td>
-          <td>${vals.X4 ?? "-"}</td>
-          <td>${vals.X5 ?? "-"}</td>
-          <td>${vals.X6 ?? "-"}</td>
-          <td>${vals.X7 ?? "-"}</td>
-          <td>${vals.X8 ?? "-"}</td>
-          <td>${vals.X9 ?? "-"}</td>
-          <td>${vals.X10 ?? "-"}</td>
+          ${xCells}
           <td><strong>${batch.mean ?? "-"}</strong></td>
           <td>${batch.range ?? "-"}</td>
           <td>${oosBadge}</td>

@@ -126,7 +126,7 @@
               <div class="kpi-value-row">
                 <span id="kpi-sys-status" class="kpi-value status-good">TỐT</span>
               </div>
-              <div class="kpi-subtext">Trong 1 giờ</div>
+              <div class="kpi-subtext">Đánh giá toàn quy trình</div>
             </div>
 
             <div class="kpi-card">
@@ -135,7 +135,7 @@
                 <span id="kpi-active-defects" class="kpi-value">--</span>
                 <span id="kpi-active-trend" class="kpi-trend">--</span>
               </div>
-              <div class="kpi-subtext">Trong 1 giờ</div>
+              <div class="kpi-subtext">Công đoạn cần can thiệp</div>
             </div>
 
             <div class="kpi-card">
@@ -144,15 +144,15 @@
                 <span id="kpi-defect-rate" class="kpi-value">--</span>
                 <span id="kpi-rate-trend" class="kpi-trend">--</span>
               </div>
-              <div class="kpi-subtext">Trong 1 giờ</div>
+              <div class="kpi-subtext">Tỷ lệ mẫu ngoài quy chuẩn (OOS)</div>
             </div>
 
             <div class="kpi-card">
-              <div class="kpi-title">Lỗi phổ biến</div>
+              <div class="kpi-title">Lỗi phổ biến nhất</div>
               <div class="kpi-value-row">
-                <span id="kpi-common-defects" class="kpi-value">E5, E6</span>
+                <span id="kpi-common-defects" class="kpi-value">--</span>
               </div>
-              <div class="kpi-subtext">Trong 1 giờ</div>
+              <div class="kpi-subtext">Công đoạn có tần suất cao</div>
             </div>
           </div>
 
@@ -229,7 +229,7 @@
               <div class="kpi-value-row">
                 <span id="single-usl-val" class="kpi-value status-good">--</span>
               </div>
-              <div class="kpi-subtext">Trong 1 giờ</div>
+              <div class="kpi-subtext">Quy chuẩn kỹ thuật trên</div>
             </div>
 
             <div class="kpi-card">
@@ -238,7 +238,7 @@
                 <span id="single-lsl-val" class="kpi-value">--</span>
                 <span id="single-lsl-trend" class="kpi-trend">Cpk --</span>
               </div>
-              <div class="kpi-subtext">Trong 1 giờ</div>
+              <div class="kpi-subtext">Quy chuẩn kỹ thuật dưới</div>
             </div>
 
             <div class="kpi-card">
@@ -246,7 +246,7 @@
               <div class="kpi-value-row">
                 <span id="single-ucl-lcl-val" class="kpi-value" style="font-size: 20px;">--</span>
               </div>
-              <div class="kpi-subtext">Trong 1 giờ</div>
+              <div class="kpi-subtext">Giới hạn kiểm soát Shewhart (±3σ)</div>
             </div>
 
             <div class="kpi-card">
@@ -254,7 +254,7 @@
               <div class="kpi-value-row">
                 <span id="single-cl-val" class="kpi-value" style="font-size: 20px;">--</span>
               </div>
-              <div class="kpi-subtext">Trong 1 giờ</div>
+              <div class="kpi-subtext">Đường tâm trung bình (X̄)</div>
             </div>
           </div>
 
@@ -267,7 +267,11 @@
                 <button id="tab-defect-violations" class="chart-tab-btn" type="button">Nhật ký vi phạm SPC</button>
               </div>
 
-              <div id="single-defect-status-pill" class="pill-badge pill-good">✓ Đạt chuẩn</div>
+              <div class="header-controls-group">
+                <span id="single-batch-count" class="pill-badge" style="display: none;">0 lô</span>
+                <span id="single-violation-count" class="pill-badge pill-danger" style="display: none;">0 vi phạm</span>
+                <div id="single-defect-status-pill" class="pill-badge pill-good">✓ Đạt chuẩn</div>
+              </div>
             </div>
 
             <!-- Tab 1: 4 Biểu đồ SPC thu gọn (2x2) -->
