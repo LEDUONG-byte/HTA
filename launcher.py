@@ -39,7 +39,7 @@ def wait_for_dashboard(server: subprocess.Popen[bytes], timeout: float = 45) -> 
         if server.poll() is not None:
             raise RuntimeError(
                 "Dashboard không khởi động được. Kiểm tra lỗi phía trên "
-                "hoặc cài lại các thư viện bằng CHAY_SPC.bat."
+                "hoặc cài lại các thư viện bằng run.bat."
             )
         try:
             with socket.create_connection((HOST, PORT), timeout=1):

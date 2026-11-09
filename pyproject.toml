@@ -12,17 +12,18 @@ dependencies = [
     "numpy>=2.1",
     "openpyxl>=3.1",
     "pandas>=2.2",
-    "uvicorn[standard]>=0.34",
+    "uvicorn>=0.34",
+    "websockets>=13.0",
+    "httptools>=0.6.0",
 ]
 
 [tool.setuptools]
 py-modules = ["main", "launcher", "simulator"]
+packages = ["core", "api"]
 include-package-data = true
 
 [tool.setuptools.data-files]
 "css" = ["css/**/*"]
-"img" = ["img/**/*"]
 "js" = ["js/**/*"]
 "lib" = ["lib/**/*"]
-"scss" = ["scss/**/*"]
 "template" = ["template/**/*"]

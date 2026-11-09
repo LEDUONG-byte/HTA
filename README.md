@@ -1,17 +1,13 @@
 # HTA - Dashboard giám sát chất lượng SPC
 
-HTA là ứng dụng dashboard chạy trên máy tính Windows, dùng để theo dõi dữ liệu
-kiểm soát chất lượng theo phương pháp **SPC (Statistical Process Control)**.
-Ứng dụng đọc dữ liệu từ workbook Excel, tính các chỉ số và biểu đồ cho từng
-loại lỗi, hiển thị cảnh báo theo thời gian thực, đồng thời có thể tạo thêm dữ
-liệu mô phỏng để người dùng thử các chức năng.
+HTA là ứng dụng dashboard chạy trên máy tính Windows, dùng để theo dõi dữ liệu kiểm soát chất lượng theo phương pháp **SPC (Statistical Process Control)**. Ứng dụng đọc dữ liệu từ workbook Excel, tính các chỉ số và biểu đồ cho từng loại lỗi, hiển thị cảnh báo theo thời gian thực, đồng thời tích hợp trình giả lập dữ liệu ảo để kiểm thử và theo dõi phản ứng của hệ thống.
 
-Tài liệu này dành cho người dùng cuối: cách cài đặt, khởi động, đọc dashboard,
-chạy dữ liệu ảo, xử lý sự cố và hiểu dữ liệu nào được lưu hoặc xóa.
+---
 
 ## Mục lục
 
 - [Tổng quan cách hoạt động](#tổng-quan-cách-hoạt-động)
+- [Kiến trúc hệ thống & Cấu trúc thư mục](#kiến-trúc-hệ-thống--cấu-trúc-thư-mục)
 - [Yêu cầu sử dụng](#yêu-cầu-sử-dụng)
 - [Chạy ứng dụng từ mã nguồn](#chạy-ứng-dụng-từ-mã-nguồn)
 - [Chạy bản đã đóng gói](#chạy-bản-đã-đóng-gói)
@@ -23,301 +19,237 @@ chạy dữ liệu ảo, xử lý sự cố và hiểu dữ liệu nào được
 - [Khắc phục sự cố](#khắc-phục-sự-cố)
 - [Câu hỏi thường gặp](#câu-hỏi-thường-gặp)
 
+---
+
 ## Tổng quan cách hoạt động
 
-Ứng dụng hoạt động theo chuỗi sau:
+Ứng dụng vận hành theo luồng tự động và bảo toàn dữ liệu:
 
-1. Người dùng chạy ứng dụng bằng `CHAY_SPC.bat` hoặc `HTA.exe`.
-2. HTA khởi động một máy chủ web cục bộ trên máy tính và mở trang dashboard
-   trong trình duyệt.
-3. Backend đọc từng sheet trong `ER_TABLE.xlsx`, lấy tên loại lỗi, giới hạn
-   quy chuẩn và các nhóm số đo.
-4. Backend làm sạch số liệu, tính các chỉ số SPC, trạng thái và lịch sử cảnh
-   báo cho từng sheet.
-5. Trình duyệt nhận dữ liệu ban đầu và được cập nhật khi dữ liệu thay đổi.
-6. Nếu người dùng bật mô phỏng, các lô dữ liệu ảo được ghép với dữ liệu trong
-   workbook để tính lại kết quả. Workbook gốc không bị sửa đổi.
+1. Người dùng chạy ứng dụng bằng `run.bat` hoặc tệp đóng gói `HTA.exe`.
+2. HTA khởi động máy chủ FastAPI cục bộ (`127.0.0.1`) và tự động mở trang dashboard trên trình duyệt mặc định.
+3. Tầng dữ liệu đọc từng sheet trong `ER_TABLE.xlsx`, trích xuất tên loại lỗi, giới hạn quy chuẩn kỹ thuật (LSL/USL) và các nhóm mẫu đo lường ($X_1 \rightarrow X_{10}$).
+4. Động cơ tính toán SPC làm sạch số liệu, tính các giá trị trung bình, khoảng biến thiên, giới hạn kiểm soát ($UCL/CL/LCL$), chỉ số năng lực quá trình ($C_p, C_{pk}$), và quét các quy tắc vi phạm (run rules).
+5. Kết quả được lưu đệm trong cache bộ nhớ (TTL = 5 giây) và phân phối tới giao diện qua REST API và kênh WebSocket thời gian thực.
+6. Nếu người dùng bật mô phỏng, các lô ảo được sinh và lưu tạm trong SQLite, ghép với dữ liệu thật trong bộ nhớ để tính toán lại. **Tệp workbook Excel gốc hoàn toàn không bị chỉnh sửa hay ghi đè.**
 
-Dashboard được thiết kế để giám sát trên chính máy đang chạy ứng dụng. Máy chủ
-lắng nghe tại `127.0.0.1`, không phải dịch vụ triển khai để truy cập trực tiếp
-từ Internet hoặc máy tính khác trong mạng.
+Dashboard được thiết kế để giám sát trên máy trạm nội bộ, mặc định lắng nghe loopback `127.0.0.1`, đảm bảo bảo mật và tốc độ phản hồi tức thời.
+
+---
+
+## Kiến trúc hệ thống & Cấu trúc thư mục
+
+Hệ thống được thiết kế theo kiến trúc module hóa phân tầng (Clean Architecture & Single Responsibility Principle), tách bạch rõ ràng giữa nghiệp vụ tính toán, truy xuất dữ liệu, định tuyến mạng và giao diện:
+
+```text
+HTA/
+├── core/                           # Tầng nghiệp vụ lõi & xử lý dữ liệu
+│   ├── __init__.py
+│   ├── config.py                   # Cấu hình đường dẫn, logging, hằng số Shewhart (A2, D3, D4, d2)
+│   ├── spc_calculator.py           # Động cơ toán học SPC thuần túy (X-bar, R, P, C, Cp/Cpk, Run Rules, OOS)
+│   ├── data_loader.py              # I/O đọc ER_TABLE.xlsx, truy vấn lô ảo SQLite và ghép dữ liệu
+│   ├── cache_manager.py            # Quản lý bộ đệm In-memory Cache & cơ chế TTL / làm mới
+│   ├── websocket_manager.py        # Quản lý vòng đời kết nối WebSocket (ConnectionManager)
+│   └── simulator.py                # Động cơ mô phỏng sinh dữ liệu đo lường ảo định kỳ
+│
+├── api/                            # Tầng giao tiếp mạng & định tuyến
+│   ├── __init__.py
+│   └── routes.py                   # Định tuyến REST (/api/spc, /api/simulator/*) & WebSocket (/ws/dashboard)
+│
+├── css/                            # Định kiểu giao diện hiện đại, phẳng, tối ưu hiển thị
+├── js/                             # Logic xử lý giao diện client (app.js, initial-data.js)
+├── lib/                            # Thư viện client bên thứ ba (Chart.js, jQuery, Bootstrap)
+├── template/                       # Template HTML giao diện chính (index.html)
+├── docs/                           # Tài liệu kiến trúc, API và trình giả lập
+│   ├── architecture.md             # Sơ đồ kiến trúc phân tầng chi tiết
+│   ├── api_reference.md            # Tài liệu tham chiếu REST & WebSocket API
+│   └── virtual-data-simulator.md   # Hướng dẫn chi tiết bộ nạp dữ liệu ảo
+│
+├── main.py                         # Điểm lắp ráp ứng dụng FastAPI, middleware và static files
+├── simulator.py                    # CLI entry point cho bộ mô phỏng dữ liệu ảo
+├── launcher.py                     # Quản lý khởi chạy máy chủ, mở trình duyệt và dọn dẹp khi thoát
+│
+├── ER_TABLE.xlsx                   # Bảng tính Excel dữ liệu gốc gồm 8 sheet loại lỗi
+├── run.bat                         # Kịch bản khởi chạy ứng dụng tự động trên Windows
+├── build.bat                       # Kịch bản đóng gói ứng dụng thành file thực thi (.exe)
+├── HTA.spec                        # Cấu hình PyInstaller phân phối ứng dụng
+├── requirements.txt                # Danh sách thư viện Python cần thiết
+└── pyproject.toml                  # Khai báo cấu hình dự án Python & setuptools
+```
+
+### Trách nhiệm các module chính:
+
+- **`core.config`**: Định nghĩa thư mục gốc `ROOT_PATH` (hỗ trợ cả môi trường dev lẫn `_MEIPASS` khi đóng gói), cấu hình logging tập trung và lưu trữ các hằng số Shewhart cho cỡ nhóm $n = 10$ ($A_2 = 0.308$, $D_3 = 0.223$, $D_4 = 1.777$, $d_2 = 3.078$).
+- **`core.spc_calculator`**: Động cơ toán học độc lập hoàn toàn với FastAPI, tính toán chính xác các giới hạn kiểm soát Shewhart, chỉ số năng lực quá trình ($\hat{\sigma} = \bar{R} / d_2$, $C_p$, $C_{pk}$), kiểm tra quy tắc chuỗi 7 điểm liên tiếp một phía và phân loại trạng thái an toàn.
+- **`core.data_loader`**: Xử lý nạp dữ liệu từ các sheet Excel, chuẩn hóa định dạng LSL/USL, đọc các lô ảo từ SQLite và hợp nhất dữ liệu trước khi tính toán.
+- **`core.cache_manager`**: Quản lý bộ đệm kết quả tính toán SPC với thời gian sống 5.0 giây, hạn chế tối đa tải đọc ghi đĩa và hỗ trợ xóa cache tức thời khi phát sinh sự kiện mô phỏng.
+- **`core.websocket_manager`**: Theo dõi danh sách client WebSocket trực tuyến, tự động dọn kết nối chết và hỗ trợ phát tin đồng loạt (broadcast).
+- **`api.routes`**: Quản lý các endpoint REST API và WebSocket, tách biệt rõ ràng với phần cấu hình ứng dụng.
+- **`main.py`**: Điểm lắp ráp ứng dụng tinh gọn, xử lý vòng đời `lifespan` (tự động xóa lô ảo còn sót khi khởi động/kết thúc), áp dụng middleware chuẩn hóa đường dẫn và phục vụ các tệp tĩnh.
+
+---
 
 ## Yêu cầu sử dụng
 
 ### Chạy từ mã nguồn
 
-- Windows.
-- Python 3.13 trở lên được khuyến nghị để phù hợp với cấu hình dự án.
-- Kết nối Internet trong lần chạy đầu để tải các thư viện Python.
-- Giữ nguyên các tệp và thư mục đi cùng ứng dụng, đặc biệt là:
-  `ER_TABLE.xlsx`, `main.py`, `simulator.py`, `launcher.py`, `css`, `js`, `lib`
-  và `template`.
+- Hệ điều hành Windows.
+- Python 3.13 trở lên được khuyến nghị.
+- Kết nối Internet trong lần đầu để tải các thư viện Python cần thiết.
+- Giữ nguyên cấu trúc thư mục của dự án (`core`, `api`, `css`, `js`, `lib`, `template`, `ER_TABLE.xlsx`).
 
 ### Chạy bản đóng gói
 
-- Người dùng cuối không cần cài Python.
-- Cần chạy từ toàn bộ thư mục `dist\HTA` đã được đóng gói; không tách riêng
-  `HTA.exe` khỏi các tệp đi kèm.
+- Người dùng cuối **không cần cài Python**.
+- Chạy trực tiếp từ thư mục `dist\HTA` đã đóng gói (chạy tệp `HTA.exe`).
+- Không tách riêng `HTA.exe` khỏi thư mục chứa các thư viện và tệp đi kèm.
+
+---
 
 ## Chạy ứng dụng từ mã nguồn
 
-1. Giải nén hoặc đặt toàn bộ dự án vào một thư mục trên máy Windows.
-2. Mở thư mục đó và nhấp đúp `CHAY_SPC.bat`.
-3. Ở lần đầu, ứng dụng tạo môi trường Python riêng `.venv`. Nếu thiếu thư
-   viện, ứng dụng cài chúng từ `requirements.txt`; cần có Internet và chờ quá
-   trình cài đặt hoàn tất.
-4. Khi máy chủ sẵn sàng, trình duyệt sẽ mở dashboard tại:
+1. Mở thư mục dự án trên máy tính Windows.
+2. Nhấp đúp vào tệp `run.bat`.
+3. Trong lần đầu, kịch bản sẽ tự tạo môi trường ảo `.venv` và cài đặt các thư viện từ `requirements.txt`.
+4. Khi máy chủ sẵn sàng, trình duyệt sẽ tự động mở trang dashboard tại:  
    `http://127.0.0.1:8000`
-5. Giữ cửa sổ console đang chạy trong suốt thời gian sử dụng. Đóng cửa sổ này
-   sẽ làm ứng dụng kết thúc.
+5. Giữ cửa sổ console mở trong suốt quá trình làm việc. Nhấn `Ctrl+C` trong console để dừng ứng dụng an toàn.
 
-Các lần sau thường không cần cài lại thư viện nếu môi trường `.venv` vẫn còn
-đầy đủ.
+---
 
 ## Chạy bản đã đóng gói
 
-Người tạo bản phân phối cần chạy `DONG_GOI.bat` trên Windows, với Python 3.13
-trở lên và kết nối Internet. Khi hoàn tất, ứng dụng nằm trong
-`dist\HTA`.
+Người tạo bản phân phối chạy `build.bat` để biên dịch ứng dụng. Sau khi quá trình đóng gói hoàn tất, sản phẩm nằm trong thư mục:  
+`dist\HTA`
 
-Để sử dụng trên máy khác:
+Để chuyển sang máy khác sử dụng:
 
-1. Sao chép **toàn bộ** thư mục `dist\HTA` sang máy đích.
-2. Chạy `HTA.exe`.
-3. Chờ trang dashboard mở trong trình duyệt và giữ cửa sổ ứng dụng hoạt động.
+1. Sao chép **toàn bộ thư mục** `dist\HTA` sang máy đích.
+2. Nhấp đúp chạy `HTA.exe`.
+3. Trình duyệt sẽ tự động mở dashboard.
 
-Không chỉ sao chép riêng `HTA.exe`, vì các thư viện và tài nguyên giao diện
-được phân phối cùng thư mục.
+---
 
 ## Sử dụng dashboard
 
-### Tổng quan
+### Tab Tổng quan
 
-Tab **Tổng quan** giúp xem nhanh tình trạng chung của các loại lỗi. Dashboard
-hiển thị các biểu đồ tổng hợp về:
+Tab **Tổng quan** cung cấp góc nhìn toàn cảnh về tình trạng chất lượng của nhà máy:
 
-- Số loại lỗi đang ổn định, cần cảnh báo, nguy hiểm hoặc chưa có dữ liệu.
-- Năng lực Cpk theo từng loại lỗi.
-- Số lượng/tỷ lệ mẫu ngoài quy chuẩn (OOS).
-- Tỷ trọng các lô có trạng thái nguy hiểm theo loại lỗi.
-- Lịch sử cảnh báo và nguy hiểm gần đây.
+- Thẻ tóm tắt số lượng loại lỗi: **Ổn định**, **Cần theo dõi**, **Nguy hiểm** hoặc **Chưa có dữ liệu**.
+- **Biểu đồ tương quan các lỗi**: Trục kép kết hợp giữa chỉ số năng lực quá trình $C_{pk}$ (cột) và tỷ lệ vượt ngưỡng quy chuẩn OOS (đường nét uốn cong mượt mà), có đường tham chiếu mục tiêu chuẩn $C_{pk} = 1.33$.
+- Bộ chuyển đổi nhanh chế độ xem biểu đồ tổng quan: $C_{pk}$ & OOS, Trạng thái phân loại, Tỷ trọng phế phẩm.
+- Nhật ký các cảnh báo và vi phạm mới nhất theo dòng thời gian thực.
 
-Thời điểm cập nhật được hiển thị trên trang. Dashboard tự làm mới thông tin;
-không cần tải lại trình duyệt mỗi khi có lô mới.
+### Xem chi tiết từng loại lỗi (E1 – E8)
 
-### Xem chi tiết một loại lỗi
+Nhấp vào từng tab loại lỗi cụ thể để kiểm tra chuyên sâu:
 
-Chọn tab có mã loại lỗi (ví dụ E1, E2...) để xem thông tin riêng cho sheet đó,
-bao gồm:
+- **Chỉ số năng lực**: Hiển thị chi tiết $C_p$, $C_{pk}$, độ lệch chuẩn ước tính $\hat{\sigma}$, giá trị trung bình $\bar{\bar{X}}$, và khoảng biến thiên trung bình $\bar{R}$.
+- **Bộ 4 biểu đồ kiểm soát SPC chuyên sâu**:
+  1. **Biểu đồ $\bar{X}$ (Trung bình nhóm)** kèm các đường $UCL, CL, LCL$.
+  2. **Biểu đồ $R$ (Khoảng biến thiên)** theo dõi độ phân tán mẫu.
+  3. **Biểu đồ $P$ (Tỷ lệ phế phẩm)** với giới hạn kiểm soát biến thiên theo cỡ mẫu.
+  4. **Biểu đồ $C$ (Số lượng khuyết tật)** đếm số điểm vi phạm quy chuẩn.
+- **Bảng số liệu đo theo lô**: Liệt kê đầy đủ 10 giá trị đo $X_1 \rightarrow X_{10}$, giá trị trung bình, khoảng biến thiên, số mẫu OOS và dấu hiệu nhận biết lô ảo.
+- **Nhật ký vi phạm SPC**: Lưu vết mọi điểm vượt giới hạn kiểm soát hoặc chuỗi vi phạm quy tắc thống kê.
 
-- Trạng thái và Cpk hiện tại.
-- Biểu đồ X-bar, R, P và C.
-- Các giới hạn quy chuẩn LSL/USL và giới hạn kiểm soát UCL/CL/LCL.
-- Lịch sử giá trị theo lô.
-- Lịch sử vi phạm SPC và các mẫu OOS.
+### Bật / Dừng dữ liệu mô phỏng
 
-Biểu đồ mini chỉ hiển thị tối đa 12 nhóm gần nhất. Bảng lịch sử giúp xem các
-lô, thời điểm, giá trị và cảnh báo chi tiết hơn.
+- Nhấn nút **Bắt đầu dữ liệu ảo** trên thanh điều khiển để tạo dữ liệu thử nghiệm.
+- Lô đầu tiên được sinh ngay lập tức; các lô tiếp theo được tự động sinh định kỳ mỗi 60 giây.
+- Trong khi mô phỏng hoạt động, nút chuyển thành **Dừng dữ liệu ảo**.
+- Khi nhấn dừng, toàn bộ các lô mô phỏng trong phiên sẽ được tự động xóa sạch khỏi hệ thống và dashboard lập tức trở về trạng thái đo lường thực tế từ tệp Excel.
 
-### Bật hoặc tắt dữ liệu mô phỏng
-
-Nút **Bắt đầu dữ liệu ảo** sẽ khởi chạy mô phỏng. Lô đầu tiên được tạo ngay;
-những lô tiếp theo được tạo theo chu kỳ 60 giây. Trong khi mô phỏng chạy, nút
-đổi thành **Dừng dữ liệu ảo**.
-
-Khi nhấn **Dừng dữ liệu ảo**, ứng dụng dừng tác vụ mô phỏng và xóa các lô do
-phiên đó tạo. Sau đó dashboard cập nhật lại theo dữ liệu còn lại trong
-workbook.
-
-Mô phỏng nhằm hỗ trợ xem hoạt động của dashboard và biểu đồ. Các số đo này là
-dữ liệu tổng hợp, không phải kết quả đo thực tế và không nên dùng làm hồ sơ
-chất lượng sản xuất.
+---
 
 ## Ý nghĩa các chỉ số và trạng thái
 
-### Giới hạn và chỉ số năng lực
+### Giới hạn kỹ thuật và chỉ số năng lực
 
-- **LSL (Lower Specification Limit):** giới hạn quy chuẩn dưới.
-- **USL (Upper Specification Limit):** giới hạn quy chuẩn trên.
-- **UCL / LCL:** giới hạn kiểm soát trên / dưới của biểu đồ.
-- **CL:** đường tâm của biểu đồ.
-- **Cp:** chỉ số năng lực tiềm năng, so sánh độ rộng dung sai với độ phân tán
-  của quá trình.
-- **Cpk:** chỉ số năng lực có xét cả độ phân tán và vị trí trung bình so với
-  giới hạn quy chuẩn. Cpk thấp hơn 1 nghĩa là năng lực không đạt theo ngưỡng
-  đánh giá của dashboard.
-- **OOS (Out of Specification):** mẫu thấp hơn LSL hoặc cao hơn USL. Mẫu đúng
-  bằng LSL hoặc USL được tính trong giới hạn.
+- **LSL (Lower Specification Limit)**: Giới hạn quy chuẩn dưới từ yêu cầu kỹ thuật.
+- **USL (Upper Specification Limit)**: Giới hạn quy chuẩn trên từ yêu cầu kỹ thuật.
+- **CL (Center Line)**: Đường tâm trung bình của quá trình.
+- **UCL / LCL (Upper / Lower Control Limits)**: Giới hạn kiểm soát trên và dưới theo phương pháp thống kê Shewhart 3-sigma.
+- **$C_p$**: Chỉ số năng lực tiềm năng của quá trình: $C_p = \frac{USL - LSL}{6\hat{\sigma}}$.
+- **$C_{pk}$**: Chỉ số năng lực thực tế có xét đến độ lệch tâm: $C_{pk} = \min\left(\frac{USL - \bar{\bar{X}}}{3\hat{\sigma}}, \frac{\bar{\bar{X}} - LSL}{3\hat{\sigma}}\right)$.
+- **OOS (Out of Specification)**: Số lượng mẫu đo nằm ngoài khoảng $[LSL, USL]$. Mẫu nằm đúng tại ngưỡng $LSL$ hoặc $USL$ vẫn được tính là đạt.
 
-Cp/Cpk là chỉ số thống kê hỗ trợ theo dõi, không thay thế việc xác minh quy
-trình, phương pháp đo hoặc quyết định chất lượng theo quy định của đơn vị.
+### Tiêu chí phân loại trạng thái quá trình
 
-### Các biểu đồ
+- 🔴 **Nguy hiểm (DANGER) / Không ổn định**:
+  - $C_{pk} < 1.00$, hoặc
+  - Có ít nhất một điểm vượt ngoài giới hạn kiểm soát ($UCL$ hoặc $LCL$), hoặc
+  - Vi phạm quy tắc chuỗi: có 7 điểm liên tiếp nằm cùng một phía so với đường tâm $\bar{\bar{X}}$, hoặc
+  - Phát sinh ít nhất một mẫu vượt quy chuẩn kỹ thuật (OOS).
+- 🟡 **Cảnh báo (WARNING) / Cần theo dõi**:
+  - Không vi phạm các điều kiện nguy hiểm trên, và
+  - Chỉ số $1.00 \le C_{pk} < 1.33$.
+- 🟢 **Ổn định (SUCCESS)**:
+  - Không vi phạm giới hạn kiểm soát hoặc quy tắc chuỗi, không có mẫu OOS, và
+  - Chỉ số $C_{pk} \ge 1.33$.
+- ⚪ **Chưa có dữ liệu (NO_DATA)**:
+  - Sheet không có dữ liệu số đo hợp lệ hoặc định dạng bị lỗi.
 
-- **X-bar Chart:** theo dõi trung bình của từng nhóm mẫu.
-- **R Chart:** theo dõi khoảng biến thiên (giá trị lớn nhất trừ nhỏ nhất)
-  trong từng nhóm.
-- **P Chart:** theo dõi tỷ lệ mẫu OOS trong mỗi nhóm; giới hạn kiểm soát được
-  điều chỉnh theo số mẫu hợp lệ của nhóm.
-- **C Chart:** theo dõi số mẫu OOS trong mỗi nhóm.
-
-### Trạng thái tổng thể của một loại lỗi
-
-Dashboard dùng các ngưỡng và điều kiện sau:
-
-- **Nguy hiểm / Không ổn định:** Cpk dưới 1.00, có vi phạm giới hạn kiểm soát,
-  có chuỗi 7 điểm liên tiếp cùng phía đường tâm X-bar, hoặc có ít nhất một
-  mẫu OOS.
-- **Cảnh báo / Cần theo dõi:** không rơi vào điều kiện nguy hiểm và Cpk từ
-  1.00 đến dưới 1.33.
-- **Ổn định:** không có điều kiện nguy hiểm và Cpk từ 1.33 trở lên.
-- **Chưa có dữ liệu:** sheet không có nhóm số đo hợp lệ hoặc phát sinh lỗi dữ
-  liệu khi xử lý. Nếu thấy trạng thái này, hãy kiểm tra workbook và thông báo
-  lỗi trong cửa sổ console.
-
-Trạng thái tổng hợp không chỉ phụ thuộc vào Cpk. Một quá trình có Cpk cao vẫn
-có thể bị đánh dấu nguy hiểm nếu phát hiện vi phạm SPC hoặc mẫu OOS.
+---
 
 ## Dữ liệu Excel đầu vào
 
-Workbook đầu vào là `ER_TABLE.xlsx`, đặt cùng cấp với ứng dụng khi chạy từ mã
-nguồn. Mỗi sheet tương ứng với một loại lỗi. Backend đọc:
+Tệp nguồn dữ liệu là `ER_TABLE.xlsx` đặt tại thư mục gốc của dự án. Mỗi sheet tương ứng với một loại lỗi và có cấu trúc tiêu chuẩn:
 
-- Tên loại lỗi tại ô đầu tiên của sheet.
-- LSL và USL ở hàng thứ hai, cột B và cột C.
-- Bảng số đo bắt đầu với tiêu đề ở hàng thứ năm.
-- Các cột mẫu nhận diện là `X1` đến `X10`.
-- Có thể có cột `TIME` và `ID` để hiển thị thời điểm và mã lô.
+- **Ô A1**: Tên loại lỗi (ví dụ: *Lỗi cần cong biến dạng sau nung*).
+- **Hàng 2 (Cột B, C)**: Giới hạn quy chuẩn kỹ thuật `LSL` (ô B2) và `USL` (ô C2).
+- **Hàng 5**: Dòng tiêu đề của bảng số đo, chứa các cột nhận diện bắt buộc từ `X1` đến `X10`, cùng các cột bổ trợ tùy chọn như `TIME` và `ID`.
+- **Hàng 6 trở đi**: Dữ liệu đo lường theo từng lô sản xuất.
 
-Để dữ liệu được nhận đúng:
+**Lưu ý quan trọng:**
+- Mỗi lô cần ít nhất 2 mẫu hợp lệ để tính toán trung bình và khoảng biến thiên.
+- Các giá trị đo phải ở dạng số (hỗ trợ cả dấu chấm `.` và dấu phẩy `,` cho phần thập phân).
 
-- Giữ nguyên cấu trúc và vị trí các trường nói trên.
-- Các giá trị mẫu phải chuyển được thành số. Giá trị trống hoặc không phải số
-  sẽ bị loại khi tính toán.
-- Một nhóm cần ít nhất 2 mẫu hợp lệ để tính trung bình và khoảng biến thiên.
-- LSL/USL phải là giá trị số hợp lệ; nếu dùng số thập phân, có thể dùng dấu
-  chấm hoặc dấu phẩy.
-- Sao lưu workbook trước khi thay thế hoặc chỉnh sửa.
-
-Nếu không có cột mẫu hợp lệ hoặc không còn nhóm hợp lệ, loại lỗi đó sẽ không
-thể được tính toán. Nếu giới hạn quy chuẩn không hợp lệ, việc tải dữ liệu có
-thể thất bại.
+---
 
 ## Dữ liệu mô phỏng
 
-Mô phỏng lấy các nhóm mẫu từ workbook làm nguồn, thêm một lượng nhiễu nhỏ và
-làm tròn các số đo đến 2 chữ số thập phân. Mỗi lô mô phỏng có 10 cột mẫu
-`X1`-`X10` cho từng loại lỗi.
+Trình giả lập (`simulator.py`) hoạt động hoàn toàn độc lập:
+- Lấy mẫu dựa trên dữ liệu thực tế trong workbook, bổ sung nhiễu ngẫu nhiên và làm tròn số thập phân.
+- Các lô ảo được gán mã nhận diện dạng `LOT-000001`, `LOT-000002`...
+- Dữ liệu mô phỏng được lưu trong tệp SQLite tạm thời `virtual_spc_data.sqlite3`. Khi chạy bản đóng gói `.exe`, tệp này nằm an toàn trong thư mục `%LOCALAPPDATA%\HTA` để tránh lỗi phân quyền ghi đĩa.
+- Hệ thống tự động dọn sạch các bản ghi mô phỏng cũ mỗi khi khởi động hoặc tắt dashboard.
 
-- Lô đầu tiên được tạo ngay khi bắt đầu.
-- Mã lô có dạng `LOT-000001`, `LOT-000002`... và tăng dần trong phiên.
-- Các lô tiếp theo được tạo mỗi 60 giây.
-- Dữ liệu mô phỏng được đánh dấu riêng để phân biệt với dữ liệu gốc.
-- Dừng mô phỏng sẽ xóa dữ liệu của phiên đang chạy.
-- Tắt ứng dụng bình thường cũng yêu cầu dừng và dọn mô phỏng.
-- Mỗi lần khởi động dashboard, ứng dụng xóa các lô mô phỏng còn sót từ phiên
-  trước. Dữ liệu gốc trong workbook không bị xóa.
-
-Dashboard dùng cache ngắn để tránh tính toán lại workbook liên tục. Khi có lô
-mới, thay đổi thường xuất hiện trong vòng khoảng 5 giây.
+---
 
 ## Dữ liệu và quyền riêng tư
 
-- Dữ liệu gốc được đọc từ workbook; ứng dụng không ghi đè workbook.
-- Tệp SQLite `virtual_spc_data.sqlite3` chỉ dùng lưu tạm các lô mô phỏng:
-  - Chạy từ mã nguồn: nằm trong thư mục dự án.
-  - Chạy bản đóng gói: nằm trong `%LOCALAPPDATA%\HTA`.
-- Ứng dụng mặc định chỉ lắng nghe `127.0.0.1` trên cổng `8000`.
-- Không có chức năng đăng nhập hay phân quyền người dùng; không mở cổng này ra
-  mạng công cộng.
-- Không nên coi dữ liệu mô phỏng là dữ liệu sản xuất hoặc dữ liệu lưu trữ dài
-  hạn. Hãy lưu dữ liệu kiểm tra thực tế trong hệ thống có quy trình sao lưu
-  riêng của đơn vị.
+- Toàn bộ quá trình tính toán và lưu trữ diễn ra **100% nội bộ (Offline)** trên máy tính của bạn.
+- Mặc định máy chủ chỉ mở kết nối trên card mạng nội bộ `127.0.0.1:8000`.
+- Không gửi bất kỳ dữ liệu sản xuất hay thông tin đo lường nào ra Internet.
 
-Nếu cổng 8000 đang được sử dụng, có thể đặt biến môi trường `HTA_PORT` sang
-một cổng còn trống trước khi chạy ứng dụng. Ví dụ trong Command Prompt:
+Nếu cổng 8000 bị chiếm dụng bởi ứng dụng khác, bạn có thể chỉ định cổng mới qua biến môi trường `HTA_PORT`:
 
-```bat
-set HTA_PORT=8010
-CHAY_SPC.bat
+```cmd
+set HTA_PORT=8080
+run.bat
 ```
 
-Sau đó dashboard sẽ ở `http://127.0.0.1:8010`. Nếu dùng bản đóng gói, đặt
-`HTA_PORT` trong môi trường rồi chạy `HTA.exe`.
+---
 
 ## Khắc phục sự cố
 
-### Dashboard không mở hoặc báo cổng đang được sử dụng
+| Hiện tượng | Nguyên nhân có thể | Cách khắc phục |
+| :--- | :--- | :--- |
+| **Báo cổng 8000 đang được sử dụng** | Có một phiên HTA khác đang chạy ngầm hoặc ứng dụng khác chiếm cổng | Kiểm tra Task Manager để đóng tiến trình cũ, hoặc đổi cổng qua lệnh `set HTA_PORT=8080`. |
+| **Lỗi cài đặt thư viện ở lần đầu chạy** | Mất kết nối Internet hoặc lỗi kết nối pip | Đảm bảo kết nối mạng ổn định và chạy lại `run.bat`. |
+| **Loại lỗi hiển thị "Chưa có dữ liệu"** | Cấu hình ô LSL/USL hoặc tên cột trong `ER_TABLE.xlsx` sai định dạng | Kiểm tra lại cấu trúc hàng 1, 2 và hàng 5 của sheet tương ứng trong file Excel. |
+| **Biểu đồ không tự làm mới** | Kết nối WebSocket bị ngắt hoặc máy chủ đã dừng | Tải lại trang (F5) hoặc kiểm tra cửa sổ console xem máy chủ còn hoạt động không. |
 
-- Kiểm tra xem một phiên HTA khác có đang chạy không.
-- Đóng phiên cũ một cách bình thường rồi thử lại.
-- Nếu một ứng dụng khác đang dùng cổng 8000, đổi `HTA_PORT` như hướng dẫn ở
-  trên.
-
-### Lần đầu chạy bị lỗi cài thư viện
-
-- Kiểm tra kết nối Internet.
-- Không đóng cửa sổ console trong lúc cài đặt.
-- Chạy lại `CHAY_SPC.bat` sau khi kết nối mạng ổn định.
-- Nếu vẫn lỗi, ghi lại nội dung thông báo trong console để gửi cho người hỗ
-  trợ.
-
-### Dashboard báo lỗi dữ liệu hoặc một loại lỗi hiện “Chưa có dữ liệu”
-
-- Kiểm tra tệp `ER_TABLE.xlsx` có ở đúng thư mục và mở được bằng Excel.
-- Kiểm tra tên sheet, hàng tiêu đề, các cột `X1`-`X10`, LSL và USL theo mục
-  [Dữ liệu Excel đầu vào](#dữ-liệu-excel-đầu-vào).
-- Kiểm tra các ô số đo có chứa ký tự hoặc định dạng không hợp lệ hay không.
-- Đọc thông báo lỗi trong cửa sổ console.
-
-### Nút mô phỏng bị khóa hoặc mô phỏng không chạy
-
-- Chờ dashboard tải xong dữ liệu ban đầu.
-- Kiểm tra workbook còn nguyên cấu trúc và có nhóm mẫu hợp lệ.
-- Xem trạng thái/lỗi trong khu vực trạng thái mô phỏng và cửa sổ console.
-- Thử dừng, sau đó bắt đầu lại phiên mô phỏng.
-
-### Dashboard không cập nhật
-
-- Chờ vài giây vì dữ liệu được làm mới theo chu kỳ.
-- Kiểm tra cửa sổ console của ứng dụng còn hoạt động.
-- Tải lại trang trình duyệt một lần. Nếu máy chủ đã dừng, hãy khởi chạy lại
-  `CHAY_SPC.bat` hoặc `HTA.exe`.
-
-### Thoát ứng dụng
-
-- Khi chạy từ mã nguồn, nhấn `Ctrl+C` trong cửa sổ console.
-- Khi chạy bản đóng gói, đóng ứng dụng theo cách thông thường và chờ thông báo
-  dừng.
-- Không tắt cưỡng bức tiến trình nếu có thể tránh được; ứng dụng cần cơ hội
-  gọi API dừng mô phỏng và xóa các lô tạm.
+---
 
 ## Câu hỏi thường gặp
 
-### Bắt đầu mô phỏng có xóa dữ liệu Excel không?
+**1. Chạy mô phỏng có làm hỏng hoặc thay đổi file Excel gốc không?**  
+*Hoàn toàn không.* Quá trình mô phỏng chỉ ghi vào cơ sở dữ liệu SQLite tạm thời và xử lý trên bộ nhớ đệm RAM. Tệp Excel gốc không bao giờ bị ghi đè.
 
-Không. Mô phỏng ghi dữ liệu riêng vào SQLite và chỉ ghép dữ liệu đó khi tính
-dashboard. Workbook gốc không bị sửa đổi.
+**2. Tại sao sau khi đóng và mở lại ứng dụng thì các lô ảo biến mất?**  
+*Đây là thiết kế tiêu chuẩn.* Dữ liệu ảo chỉ phục vụ kiểm thử phiên làm việc hiện tại và sẽ tự động được dọn dẹp sạch sẽ để dashboard luôn phản ánh đúng hiện trạng thực tế từ file Excel.
 
-### Vì sao dữ liệu mô phỏng biến mất sau khi khởi động lại?
-
-Đây là chủ đích: dữ liệu mô phỏng được coi là tạm thời. Khi ứng dụng khởi động,
-các lô còn sót từ phiên cũ được xóa để dashboard bắt đầu lại từ workbook.
-
-### Tắt mô phỏng có xóa dữ liệu gốc không?
-
-Không. Chỉ các bản ghi thuộc phiên mô phỏng đang chạy được xóa. Dữ liệu trong
-`ER_TABLE.xlsx` vẫn được giữ nguyên.
-
-### Dashboard có gửi dữ liệu lên Internet không?
-
-Theo cấu hình hiện tại, backend chạy trên `127.0.0.1` và đọc workbook trên máy.
-Quá trình cài thư viện lần đầu và đóng gói cần Internet, nhưng thao tác xem
-dashboard thông thường được phục vụ cục bộ trên máy đang chạy ứng dụng.
-
-### Có thể dùng để theo dõi dữ liệu thật trực tiếp từ dây chuyền không?
-
-Dashboard hiện đọc workbook Excel và mô phỏng dữ liệu; tài liệu này không mô
-tả một kết nối trực tiếp tới máy đo, PLC, MES hay cơ sở dữ liệu sản xuất. Hãy
-kiểm tra và nạp dữ liệu vào workbook theo đúng cấu trúc trước khi sử dụng.
-
+**3. Làm sao để cập nhật dữ liệu sản xuất mới?**  
+Chỉ cần mở `ER_TABLE.xlsx`, thêm các hàng số đo mới vào các sheet tương ứng, lưu lại tệp Excel. Dashboard sẽ tự động tính toán lại và hiển thị số liệu mới trong vòng vài giây.

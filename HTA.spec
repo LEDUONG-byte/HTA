@@ -15,7 +15,17 @@ for folder in ("css", "js", "lib", "template"):
     )
 
 binaries = []
-hiddenimports = []
+hiddenimports = [
+    "core",
+    "core.config",
+    "core.spc_calculator",
+    "core.data_loader",
+    "core.cache_manager",
+    "core.websocket_manager",
+    "core.simulator",
+    "api",
+    "api.routes",
+]
 for package in ("openpyxl", "uvicorn"):
     package_datas, package_binaries, package_hiddenimports = collect_all(package)
     datas.extend(package_datas)
@@ -31,9 +41,35 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        "tkinter",
+        "unittest",
+        "pydoc",
+        "pdb",
+        "difflib",
+        "doctest",
+        "test",
+        "curses",
+        "scipy",
+        "matplotlib",
+        "IPython",
+        "pytest",
+        "sqlite3.test",
+        "ctypes.test",
+        "distutils",
+        "email.test",
+        "numpy.f2py",
+        "numpy.testing",
+        "numpy.tests",
+        "pandas.tests",
+        "setuptools",
+        "pip",
+        "watchfiles",
+        "yaml",
+        "dotenv",
+    ],
     noarchive=False,
-    optimize=0,
+    optimize=2,
 )
 pyz = PYZ(a.pure)
 exe = EXE(

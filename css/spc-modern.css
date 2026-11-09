@@ -1,0 +1,999 @@
+/* ==========================================================================
+   SPC MODERN SAAS DASHBOARD THEME (CRISP INDUSTRIAL FLAT - 100VH NO SCROLL)
+   Chuẩn hóa giao diện theo Wireframe mẫu:
+   - 100% không cuộn trang (100vh fit toàn màn hình)
+   - Không có ICON phân tâm
+   - Loại bỏ các dòng giải thích thừa, chỉ giữ đúng tên & chỉ số
+   - Bo góc kỹ thuật sắc nét (4px - 6px), phẳng, không bóng đổ, không glow
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+:root {
+  /* Bảng màu nhận diện Axon Ember phẳng */
+  --primary: #f14b24;
+  --primary-hover: #d83c16;
+  --primary-light: #fff3ee;
+  
+  /* Bề mặt và viền phẳng sắc nét */
+  --bg-page: #f8fafc;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+  --border-darker: #cbd5e1;
+
+  /* Thang độ xám Typography */
+  --text-dark: #0f172a;
+  --text-main: #334155;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  
+  /* Trạng thái nghiệp vụ phẳng */
+  --status-good: #10b981;
+  --status-good-bg: #ecfdf5;
+  --status-good-border: #a7f3d0;
+  
+  --status-warning: #f59e0b;
+  --status-warning-bg: #fffbeb;
+  --status-warning-border: #fde68a;
+  
+  --status-danger: #ef4444;
+  --status-danger-bg: #fef2f2;
+  --status-danger-border: #fecaca;
+
+  --status-critical: #be185d;
+  --status-critical-bg: #fdf2f8;
+  --status-critical-border: #fbcfe8;
+  
+  /* Bo góc kỹ thuật sắc nét (4px - 6px) */
+  --card-radius: 6px;
+  --card-radius-sm: 4px;
+  
+  --font-stack: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--font-stack);
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Thanh cuộn tinh giản phẳng */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Khung toàn cục - 100vh không cuộn ngoài */
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   1. SIDEBAR NAVIGATION
+   ========================================================================== */
+.app-sidebar {
+  width: 220px;
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 30;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-left: 2px;
+}
+
+/* Khối logo vuông đỏ đặc phẳng theo wireframe mẫu */
+.logo-badge {
+  width: 28px;
+  height: 28px;
+  background-color: var(--primary);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.sidebar-brand-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-dark);
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+}
+
+.sidebar-brand-sub {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.sidebar-group-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-item-btn:hover {
+  background-color: #f1f5f9;
+  color: var(--text-dark);
+}
+
+.nav-item-btn.active {
+  background-color: var(--primary-light);
+  border-color: rgba(241, 75, 36, 0.25);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.nav-item-btn.active .nav-icon {
+  color: var(--primary);
+}
+
+.nav-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.nav-chevron {
+  color: var(--text-subtle);
+  transition: transform 0.2s ease;
+}
+
+.nav-chevron.rotated {
+  transform: rotate(90deg);
+}
+
+/* Submenu E1 - E8 */
+.sidebar-submenu {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 8px;
+  margin-top: 2px;
+  margin-bottom: 4px;
+  border-left: 1.5px solid #e2e8f0;
+  margin-left: 15px;
+}
+
+.sidebar-submenu.open {
+  display: flex;
+}
+
+.submenu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.submenu-item:hover {
+  background-color: #f1f5f9;
+  color: var(--text-dark);
+}
+
+.submenu-item.active {
+  background-color: #ffffff;
+  color: var(--primary);
+  font-weight: 700;
+  border-color: rgba(241, 75, 36, 0.3);
+}
+
+.submenu-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.submenu-dot.good { background-color: var(--status-good); }
+.submenu-dot.warning { background-color: var(--status-warning); }
+.submenu-dot.danger { background-color: var(--status-danger); }
+
+/* ==========================================================================
+   2. MAIN AREA & TOP HEADER
+   ========================================================================== */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--bg-page);
+}
+
+.app-header {
+  height: 48px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.breadcrumbs-crumb {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.breadcrumbs-crumb:hover {
+  color: var(--primary);
+}
+
+.breadcrumbs-separator {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.breadcrumbs-current {
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-update-pill {
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.live-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--status-good);
+  animation: pulseOpacity 2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes pulseOpacity {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Nút giả lập phẳng, không icon theo đúng wireframe mẫu */
+.btn-simulator {
+  padding: 5px 14px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background-color: var(--primary);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-simulator:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-simulator.running {
+  background-color: var(--status-danger);
+}
+
+.app-content {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   3. KPI STAT CARDS (4 thẻ phẳng - Đúng Wireframe: Không icon, không giải thích)
+   ========================================================================== */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  height: 76px;
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
+.kpi-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.kpi-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.kpi-value {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-value.status-good { color: var(--status-good); }
+.kpi-value.status-warning { color: var(--status-warning); }
+.kpi-value.status-danger { color: var(--status-danger); }
+
+.kpi-trend {
+  font-size: 11.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  line-height: 1;
+  letter-spacing: -0.2px;
+  color: var(--status-good);
+}
+
+/* Giảm lỗi (Tốt) -> Xanh lá */
+.kpi-trend.trend-good,
+.kpi-trend.trend-down-good {
+  color: var(--status-good) !important;
+}
+
+/* Tăng lỗi (Nguy hiểm) -> Đỏ */
+.kpi-trend.negative,
+.kpi-trend.trend-danger,
+.kpi-trend.trend-up-danger {
+  color: var(--status-danger) !important;
+}
+
+/* Không đổi / Trung tính -> Xám */
+.kpi-trend.trend-neutral {
+  color: var(--text-subtle) !important;
+}
+
+/* Cảnh báo -> Vàng cam */
+.kpi-trend.trend-warning {
+  color: var(--status-warning) !important;
+}
+
+.kpi-subtext {
+  font-size: 10.5px;
+  color: var(--text-subtle);
+}
+
+/* ==========================================================================
+   4. DASHBOARD MAIN GRID (Fit 100% không cuộn trang)
+   ========================================================================== */
+.overview-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 12px;
+  height: 100%;
+}
+
+.content-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.content-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.content-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.content-card-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.title-tag-occ {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.header-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-tab-bar {
+  display: flex;
+  gap: 2px;
+  background-color: #f1f5f9;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.chart-tab-btn {
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.chart-tab-btn:hover {
+  color: var(--text-dark);
+}
+
+.chart-tab-btn.active {
+  background-color: #ffffff;
+  color: var(--primary);
+  font-weight: 700;
+  border-color: var(--border-color);
+}
+
+.filter-select {
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-main);
+  background-color: #ffffff;
+  cursor: pointer;
+  outline: none;
+}
+
+.chart-container-large {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.donut-view-wrapper {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  gap: 14px;
+}
+
+.donut-chart-box {
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+.donut-breakdown-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.breakdown-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+}
+
+.breakdown-row[data-defect-id] {
+  cursor: pointer;
+}
+
+.breakdown-row[data-defect-id]:hover {
+  background-color: #f1f5f9;
+}
+
+.breakdown-top-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.breakdown-label-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.breakdown-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.breakdown-val-group {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.breakdown-bar-bg {
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.breakdown-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.chart-center-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.chart-center-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1;
+}
+
+.chart-center-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   5. OCC REVIEW QUEUE (Khay duyệt vi phạm - Cả thẻ là nút nhấp chuyển trực tiếp)
+   ========================================================================== */
+.occ-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.occ-alert-item {
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.occ-alert-item.severity-danger {
+  background-color: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.occ-alert-item.severity-warning {
+  background-color: #fffbeb;
+  border-color: #fde68a;
+}
+
+.occ-alert-item.severity-critical {
+  background-color: #fdf2f8;
+  border-color: #fbcfe8;
+}
+
+.occ-pill {
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #ffffff;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.occ-pill.red { background-color: #dc2626; }
+.occ-pill.orange { background-color: #ea580c; }
+.occ-pill.pink { background-color: #be185d; }
+
+.occ-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.occ-top-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.occ-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.occ-time-badge {
+  font-size: 10px;
+  color: var(--text-subtle);
+}
+
+.occ-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+}
+
+.occ-batch-chip {
+  padding: 1px 5px;
+  background-color: #f1f5f9;
+  border-radius: 3px;
+  font-size: 10.5px;
+  color: var(--text-dark);
+}
+
+.empty-alert-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-alert-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #16a34a;
+  margin-bottom: 4px;
+}
+
+.empty-alert-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   6. VIEW 2: SPC TỪNG LỖI (100% không cuộn)
+   ========================================================================== */
+.defect-main-card {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.defect-tab-pane {
+  flex: 1;
+  min-height: 0;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.defect-tab-pane.active {
+  display: flex;
+}
+
+.defect-charts-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+  height: 100%;
+}
+
+.mini-chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mini-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+.mini-chart-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.stat-chip {
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  background-color: #f1f5f9;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.stat-chip.highlight {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-color: rgba(241, 75, 36, 0.3);
+}
+
+.mini-chart-canvas-box {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* ==========================================================================
+   7. BẢNG DỮ LIỆU PHẲNG (TABLES)
+   ========================================================================== */
+.table-responsive {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  text-align: left;
+}
+
+.modern-table thead th {
+  background-color: #f8fafc;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+.modern-table tbody td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-main);
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.modern-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.table-search-input {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-dark);
+  background: #ffffff;
+  outline: none;
+  width: 220px;
+}
+
+.table-search-input:focus {
+  border-color: var(--primary);
+}
+
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.pill-danger {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger);
+  border: 1px solid var(--status-danger-border);
+}
+
+.pill-good {
+  background-color: var(--status-good-bg);
+  color: var(--status-good);
+  border: 1px solid var(--status-good-border);
+}
+
+/* ==========================================================================
+   8. VIEW PANELS
+   ========================================================================== */
+.view-panel {
+  flex: 1;
+  min-height: 0;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.view-panel.active {
+  display: flex;
+}

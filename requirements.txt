@@ -2,4 +2,6 @@ fastapi>=0.115
 numpy>=2.1
 openpyxl>=3.1
 pandas>=2.2
-uvicorn[standard]>=0.34
+uvicorn>=0.34
+websockets>=13.0
+httptools>=0.6.0
