@@ -451,9 +451,10 @@
   <script>
     (function() {
       var prefix = (window.location.protocol === 'file:') ? '../' : '/';
-      document.write('<script src="' + prefix + 'lib/chart.js/Chart.bundle.min.js"><\/script>');
-      document.write('<script src="' + prefix + 'js/initial-data.js"><\/script>');
-      document.write('<script src="' + prefix + 'js/app.js"><\/script>');
+      var v = Date.now();
+      document.write('<script src="' + prefix + 'lib/chart.js/Chart.bundle.min.js?v=' + v + '"><\/script>');
+      document.write('<script src="' + prefix + 'js/initial-data.js?v=' + v + '"><\/script>');
+      document.write('<script src="' + prefix + 'js/app.js?v=' + v + '"><\/script>');
     })();
   </script>
 </body>

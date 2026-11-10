@@ -29,6 +29,13 @@ function initSpcDashboard() {
     handleDataReceived(window.__INITIAL_SPC_DATA__);
   }
 
+  // Đảm bảo reflow kích thước biểu đồ chuẩn xác ngay sau khi trình duyệt dựng layout CSS
+  if (typeof requestAnimationFrame !== "undefined") {
+    requestAnimationFrame(resizeAllCharts);
+  }
+  window.setTimeout(resizeAllCharts, 150);
+  window.setTimeout(resizeAllCharts, 400);
+
   fetchSpcMatrixData();
   connectWebSocket();
 
@@ -310,26 +317,28 @@ function initSpcDashboard() {
     if (!data || !Array.isArray(data.defects)) return;
     spcData = data;
     lastDataTime = Date.now();
-    updateLastUpdatedText();
+    try { updateLastUpdatedText(); } catch (e) { console.error("Error in updateLastUpdatedText:", e); }
 
     // 1. Cập nhật Sidebar Submenu
-    renderSidebarSubmenu(data.defects);
+    try { renderSidebarSubmenu(data.defects); } catch (e) { console.error("Error in renderSidebarSubmenu:", e); }
 
     // 2. Cập nhật dữ liệu Tổng quan
-    renderOverviewKpis(data);
-    renderOverviewCharts(data);
-    renderOccAlerts(data);
-    renderDefectSummaryGrid(data.defects);
+    try { renderOverviewKpis(data); } catch (e) { console.error("Error in renderOverviewKpis:", e); }
+    try { renderOverviewCharts(data); } catch (e) { console.error("Error in renderOverviewCharts:", e); }
+    try { renderOccAlerts(data); } catch (e) { console.error("Error in renderOccAlerts:", e); }
+    try { renderDefectSummaryGrid(data.defects); } catch (e) { console.error("Error in renderDefectSummaryGrid:", e); }
 
     // 3. Nếu đang ở màn hình Chi tiết lỗi
     if (currentView === "defect" && currentDefectId) {
       const currentDefect = data.defects.find(d => d.id === currentDefectId) || data.defects[0];
-      if (currentDefect) renderSingleDefectDetail(currentDefect);
+      if (currentDefect) {
+        try { renderSingleDefectDetail(currentDefect); } catch (e) { console.error("Error in renderSingleDefectDetail:", e); }
+      }
     }
 
     // 4. Cập nhật Nhật ký và Cài đặt
-    renderLogTable(data.alertHistory || [], data.defects);
-    renderSpecsTable(data.defects);
+    try { renderLogTable(data.alertHistory || [], data.defects); } catch (e) { console.error("Error in renderLogTable:", e); }
+    try { renderSpecsTable(data.defects); } catch (e) { console.error("Error in renderSpecsTable:", e); }
   }
 
   /* ==========================================================================
@@ -490,8 +499,12 @@ function initSpcDashboard() {
     };
 
     // 4. Lỗi phổ biến nhất
-    const sortedByIssues = [...defects].sort((a, b) => (b.oosCount + b.spcViolationsCount) - (a.oosCount + a.spcViolationsCount));
-    const problemDefects = sortedByIssues.filter(d => (d.oosCount + d.spcViolationsCount) > 0);
+    const sortedByIssues = [...defects].sort((a, b) => {
+      const bIssues = (b.oosCount || 0) + (b.spcViolationsCount || 0);
+      const aIssues = (a.oosCount || 0) + (a.spcViolationsCount || 0);
+      return bIssues - aIssues;
+    });
+    const problemDefects = sortedByIssues.filter(d => ((d.oosCount || 0) + (d.spcViolationsCount || 0)) > 0);
     let commonText = "Không có";
     if (problemDefects.length > 0) {
       commonText = problemDefects.slice(0, 2).map(d => d.id.replace("defect_", "E")).join(", ");
@@ -581,7 +594,11 @@ function initSpcDashboard() {
 
   function renderCorrelationBarChart(defects, forceRecreate = false) {
     const canvas = document.getElementById("chart-correlation-overview");
-    if (!canvas || typeof Chart === "undefined") return;
+    if (!canvas) return;
+    if (typeof Chart === "undefined") {
+      window.setTimeout(() => renderCorrelationBarChart(defects, forceRecreate), 80);
+      return;
+    }
 
     const labels = defects.map(d => `${d.id.replace("defect_", "E")}`);
     const cpkValues = defects.map(d => d.cpk ?? 0);
@@ -775,7 +792,11 @@ function initSpcDashboard() {
 
   function renderStatusDonutChart(summary, forceRecreate = false) {
     const canvas = document.getElementById("chart-overview-status");
-    if (!canvas || typeof Chart === "undefined") return;
+    if (!canvas) return;
+    if (typeof Chart === "undefined") {
+      window.setTimeout(() => renderStatusDonutChart(summary, forceRecreate), 80);
+      return;
+    }
 
     const data = [
       summary.successCount || 0,
@@ -862,7 +883,11 @@ function initSpcDashboard() {
 
   function renderDefectShareChart(defects, forceRecreate = false) {
     const canvas = document.getElementById("chart-overview-defect-share");
-    if (!canvas || typeof Chart === "undefined") return;
+    if (!canvas) return;
+    if (typeof Chart === "undefined") {
+      window.setTimeout(() => renderDefectShareChart(defects, forceRecreate), 80);
+      return;
+    }
 
     const labels = defects.map(d => `${d.id.replace("defect_", "E")} - ${d.errorName}`);
     const data = defects.map(d => d.oosCount || 0);
@@ -1082,7 +1107,11 @@ function initSpcDashboard() {
   function renderSparkline(canvasId, values, ucl, lcl, cl) {
     window.setTimeout(() => {
       const canvas = document.getElementById(canvasId);
-      if (!canvas || typeof Chart === "undefined") return;
+      if (!canvas) return;
+      if (typeof Chart === "undefined") {
+        window.setTimeout(() => renderSparkline(canvasId, values, ucl, lcl, cl), 80);
+        return;
+      }
 
       const n = values.length;
       if (n === 0) return;
@@ -1271,7 +1300,11 @@ function initSpcDashboard() {
   function renderControlChart(canvasId, label, labels, values, ucl, lcl, cl, color) {
     window.setTimeout(() => {
       const canvas = document.getElementById(canvasId);
-      if (!canvas || typeof Chart === "undefined") return;
+      if (!canvas) return;
+      if (typeof Chart === "undefined") {
+        window.setTimeout(() => renderControlChart(canvasId, label, labels, values, ucl, lcl, cl, color), 80);
+        return;
+      }
 
       const signature = JSON.stringify({ labels, values, ucl, lcl, cl });
       if (chartSignatures[canvasId] === signature && chartInstances[canvasId]) {

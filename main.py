@@ -88,12 +88,16 @@ app.add_middleware(
 
 @app.middleware("http")
 async def normalize_path_middleware(request: Request, call_next):
-    """Chuẩn hóa đường dẫn nếu trình duyệt yêu cầu ../ hoặc /template/.. cho static files."""
+    """Chuẩn hóa đường dẫn và thiết lập header cấm cache tuyệt đối để tránh dùng script cũ."""
     path = request.scope.get("path", "")
     if "/../" in path or path.startswith("/.."):
         clean_path = posixpath.normpath(path)
         request.scope["path"] = clean_path
-    return await call_next(request)
+    response: Response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 # Phục vụ các tài nguyên tĩnh
@@ -112,7 +116,14 @@ async def get_favicon():
 @app.get("/")
 async def get_index_page():
     """Phục vụ trang HTML chính của dashboard."""
-    return FileResponse(ROOT_PATH / "template" / "index.html")
+    return FileResponse(
+        ROOT_PATH / "template" / "index.html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 
 # Đăng ký các route API REST và WebSocket
