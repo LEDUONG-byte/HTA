@@ -23,6 +23,13 @@ function initSpcDashboard() {
   initSimulator();
   initTimeUpdater();
   initSearchAndFilters();
+  initDataEditor();
+
+  // Cấu hình phông chữ và màu mặc định cho toàn bộ biểu đồ theo chuẩn Geist
+  if (typeof Chart !== "undefined" && Chart.defaults && Chart.defaults.global) {
+    Chart.defaults.global.defaultFontFamily = "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    Chart.defaults.global.defaultFontColor = "#6B7280";
+  }
 
   // Nạp dữ liệu ban đầu ngay lập tức để render tức thì mọi biểu đồ và thẻ KPI
   if (typeof window !== "undefined" && window.__INITIAL_SPC_DATA__) {
@@ -46,7 +53,7 @@ function initSpcDashboard() {
     const btnOverview = document.getElementById("nav-btn-overview");
     const btnSpc = document.getElementById("nav-btn-spc");
     const btnLog = document.getElementById("nav-btn-log");
-    const btnSettings = document.getElementById("nav-btn-settings");
+    const btnEditor = document.getElementById("nav-btn-editor");
     const submenu = document.getElementById("spc-submenu-list");
     const chevron = document.getElementById("spc-nav-chevron");
     const breadcrumbRoot = document.getElementById("breadcrumb-root");
@@ -77,8 +84,8 @@ function initSpcDashboard() {
       btnLog.addEventListener("click", () => activateView("log"));
     }
 
-    if (btnSettings) {
-      btnSettings.addEventListener("click", () => activateView("settings"));
+    if (btnEditor) {
+      btnEditor.addEventListener("click", () => activateView("editor"));
     }
 
     const filterSelect = document.getElementById("overview-time-filter");
@@ -194,10 +201,11 @@ function initSpcDashboard() {
       document.getElementById("nav-btn-log")?.classList.add("active");
       document.getElementById("view-panel-log")?.classList.add("active");
       if (breadcrumbActive) breadcrumbActive.textContent = "Nhật ký";
-    } else if (viewName === "settings") {
-      document.getElementById("nav-btn-settings")?.classList.add("active");
-      document.getElementById("view-panel-settings")?.classList.add("active");
-      if (breadcrumbActive) breadcrumbActive.textContent = "Cài đặt";
+    } else if (viewName === "editor") {
+      document.getElementById("nav-btn-editor")?.classList.add("active");
+      document.getElementById("view-panel-editor")?.classList.add("active");
+      if (breadcrumbActive) breadcrumbActive.textContent = "Chỉnh sửa";
+      loadEditorData();
     }
   }
 
@@ -363,7 +371,7 @@ function initSpcDashboard() {
         else if (defect.status === "WARNING") dotClass = "warning";
 
         btn.innerHTML = `
-          <span>${code} - ${escapeHtml(defect.errorName)}</span>
+          <span class="submenu-item-text">${code} - ${escapeHtml(defect.errorName)}</span>
           <span class="submenu-dot ${dotClass}"></span>
         `;
         btn.addEventListener("click", () => activateDefectView(defect.id));
@@ -571,7 +579,7 @@ function initSpcDashboard() {
   }
 
   function hexToRgb(hex) {
-    let c = String(hex || "#f14b24").replace("#", "");
+    let c = String(hex || "#D93111").replace("#", "");
     if (c.length === 3) c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
     const n = parseInt(c, 16) || 0;
     return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
@@ -619,7 +627,7 @@ function initSpcDashboard() {
     // Mốc chuẩn Target Benchmark line Cpk = 1.33
     const targetCpkLine = Array(labels.length).fill(1.33);
 
-    // Plugin đường crosshair gióng dọc khi rê chuột chuẩn Axon UI
+    // Plugin đường crosshair gióng dọc khi rê chuột chuẩn Geist Warm UI
     const axonCrosshairPlugin = {
       afterDraw: function(chart) {
         if (chart.tooltip && chart.tooltip._active && chart.tooltip._active.length) {
@@ -635,7 +643,7 @@ function initSpcDashboard() {
           c.moveTo(x, topY);
           c.lineTo(x, bottomY);
           c.lineWidth = 1.2;
-          c.strokeStyle = "#94a3b8";
+          c.strokeStyle = "#D1D5DB";
           c.stroke();
           c.restore();
         }
@@ -651,14 +659,14 @@ function initSpcDashboard() {
           {
             label: "Chỉ số Cpk (Năng lực)",
             data: cpkValues,
-            borderColor: "#b91c1c", // Đỏ mận đậm chuẩn Axon
+            borderColor: "#D93111", // Coral 600 chuẩn mẫu
             backgroundColor: "transparent",
             borderWidth: 2.2,
             lineTension: 0.38,
             pointRadius: 0,
             pointHoverRadius: 6,
             pointBackgroundColor: "#ffffff",
-            pointHoverBorderColor: "#b91c1c",
+            pointHoverBorderColor: "#D93111",
             pointHoverBorderWidth: 2.5,
             fill: false,
             yAxisID: "y-cpk"
@@ -666,14 +674,14 @@ function initSpcDashboard() {
           {
             label: "Tỷ lệ OOS (%)",
             data: oosRates,
-            borderColor: "#fb923c", // Cam mơ ấm chuẩn Axon
+            borderColor: "#FF9A6B", // Peach chuẩn mẫu
             backgroundColor: "transparent",
             borderWidth: 2,
             lineTension: 0.38,
             pointRadius: 0,
             pointHoverRadius: 6,
             pointBackgroundColor: "#ffffff",
-            pointHoverBorderColor: "#fb923c",
+            pointHoverBorderColor: "#FF9A6B",
             pointHoverBorderWidth: 2.5,
             fill: false,
             yAxisID: "y-oos"
@@ -681,8 +689,8 @@ function initSpcDashboard() {
           {
             label: "Chuẩn Cpk (1.33)",
             data: targetCpkLine,
-            borderColor: "#cbd5e1",
-            borderWidth: 1.2,
+            borderColor: "#C3BDFF", // Periwinkle chuẩn mẫu
+            borderWidth: 1.3,
             borderDash: [5, 4],
             pointRadius: 0,
             pointHoverRadius: 0,
@@ -705,24 +713,27 @@ function initSpcDashboard() {
           display: true,
           position: "top",
           labels: {
-            fontColor: "#64748b",
+            fontColor: "#6B7280",
             fontSize: 11.5,
             boxWidth: 8,
             usePointStyle: true,
             padding: 14,
-            fontStyle: "600"
+            fontStyle: "500",
+            fontFamily: "'Geist', sans-serif"
           }
         },
         tooltips: {
           mode: "index",
           intersect: false,
-          backgroundColor: "#ffffff",
-          titleFontColor: "#0f172a",
+          backgroundColor: "#111827", // Ink
+          titleFontColor: "#ffffff",
           titleFontSize: 12,
-          titleFontStyle: "bold",
-          bodyFontColor: "#334155",
+          titleFontStyle: "600",
+          titleFontFamily: "'Geist', sans-serif",
+          bodyFontColor: "#E5E7EB",
           bodyFontSize: 11.5,
-          borderColor: "#e2e8f0",
+          bodyFontFamily: "'Geist', sans-serif",
+          borderColor: "rgba(255, 255, 255, 0.15)",
           borderWidth: 1,
           cornerRadius: 6,
           xPadding: 12,
@@ -751,23 +762,23 @@ function initSpcDashboard() {
         scales: {
           xAxes: [{
             gridLines: { display: false, drawBorder: false },
-            ticks: { fontColor: "#64748b", fontStyle: "600", fontSize: 11.5, padding: 8 }
+            ticks: { fontColor: "#6B7280", fontStyle: "500", fontSize: 11.5, padding: 8, fontFamily: "'Geist', sans-serif" }
           }],
           yAxes: [
             {
               id: "y-cpk",
               type: "linear",
               position: "left",
-              ticks: { beginAtZero: true, fontColor: "#94a3b8", suggestedMax: 2.4, padding: 8, fontSize: 11, stepSize: 0.5 },
-              scaleLabel: { display: true, labelString: "Chỉ số Cpk", fontColor: "#64748b", fontStyle: "600", fontSize: 11 },
-              gridLines: { color: "#f1f5f9", borderDash: [4, 4], drawBorder: false, zeroLineColor: "#e2e8f0" }
+              ticks: { beginAtZero: true, fontColor: "#6B7280", suggestedMax: 2.4, padding: 8, fontSize: 11, stepSize: 0.5, fontFamily: "'Geist', sans-serif" },
+              scaleLabel: { display: true, labelString: "Chỉ số Cpk", fontColor: "#111827", fontStyle: "600", fontSize: 11, fontFamily: "'Geist', sans-serif" },
+              gridLines: { color: "#F3F4F6", borderDash: [4, 4], drawBorder: false, zeroLineColor: "#E5E7EB" }
             },
             {
               id: "y-oos",
               type: "linear",
               position: "right",
-              ticks: { beginAtZero: true, fontColor: "#fb923c", callback: v => `${v}%`, padding: 8, suggestedMax: 18, fontSize: 11, stepSize: 4 },
-              scaleLabel: { display: true, labelString: "Tỷ lệ OOS (%)", fontColor: "#fb923c", fontStyle: "600", fontSize: 11 },
+              ticks: { beginAtZero: true, fontColor: "#EA580C", callback: v => `${v}%`, padding: 8, suggestedMax: 18, fontSize: 11, stepSize: 4, fontFamily: "'Geist', sans-serif" },
+              scaleLabel: { display: true, labelString: "Tỷ lệ OOS (%)", fontColor: "#EA580C", fontStyle: "600", fontSize: 11, fontFamily: "'Geist', sans-serif" },
               gridLines: { drawOnChartArea: false, drawBorder: false }
             }
           ]
@@ -827,7 +838,7 @@ function initSpcDashboard() {
         labels: ["Ổn định (Cpk ≥ 1.33)", "Cần theo dõi (1.0 ≤ Cpk < 1.33)", "Nguy hiểm (Cpk < 1.0)", "Chưa có dữ liệu"],
         datasets: [{
           data: data,
-          backgroundColor: ["#10b981", "#f59e0b", "#ef4444", "#94a3b8"],
+          backgroundColor: ["#15803d", "#FF9A6B", "#D93111", "#C3BDFF"],
           borderWidth: 3,
           borderColor: "#ffffff"
         }]
@@ -838,11 +849,13 @@ function initSpcDashboard() {
         cutoutPercentage: 76,
         legend: { display: false },
         tooltips: {
-          backgroundColor: "#0f172a",
+          backgroundColor: "#141414",
           titleFontSize: 12,
+          titleFontFamily: "'Geist', sans-serif",
           bodyFontSize: 11.5,
-          cornerRadius: 4,
-          borderColor: "rgba(255, 255, 255, 0.12)",
+          bodyFontFamily: "'Geist', sans-serif",
+          cornerRadius: 6,
+          borderColor: "rgba(255, 255, 255, 0.15)",
           borderWidth: 1,
           xPadding: 10,
           yPadding: 8
@@ -857,10 +870,10 @@ function initSpcDashboard() {
     const box = document.getElementById("donut-breakdown-box");
     if (!box) return;
     const items = [
-      { label: "Ổn định (Cpk ≥ 1.33)", count: summary.successCount || 0, color: "#10b981", percent: Math.round(((summary.successCount || 0) / 8) * 100) },
-      { label: "Cần theo dõi (1.0 ≤ Cpk < 1.33)", count: summary.warningCount || 0, color: "#f59e0b", percent: Math.round(((summary.warningCount || 0) / 8) * 100) },
-      { label: "Nguy hiểm (Cpk < 1.0)", count: summary.dangerCount || 0, color: "#ef4444", percent: Math.round(((summary.dangerCount || 0) / 8) * 100) },
-      { label: "Chưa có dữ liệu", count: summary.noDataCount || 0, color: "#94a3b8", percent: Math.round(((summary.noDataCount || 0) / 8) * 100) }
+      { label: "Ổn định (Cpk ≥ 1.33)", count: summary.successCount || 0, color: "#15803d", percent: Math.round(((summary.successCount || 0) / 8) * 100) },
+      { label: "Cần theo dõi (1.0 ≤ Cpk < 1.33)", count: summary.warningCount || 0, color: "#FF9A6B", percent: Math.round(((summary.warningCount || 0) / 8) * 100) },
+      { label: "Nguy hiểm (Cpk < 1.0)", count: summary.dangerCount || 0, color: "#D93111", percent: Math.round(((summary.dangerCount || 0) / 8) * 100) },
+      { label: "Chưa có dữ liệu", count: summary.noDataCount || 0, color: "#C3BDFF", percent: Math.round(((summary.noDataCount || 0) / 8) * 100) }
     ];
 
     box.innerHTML = items.map(item => `
@@ -913,8 +926,8 @@ function initSpcDashboard() {
         datasets: [{
           data: data.some(v => v > 0) ? data : defects.map(() => 1),
           backgroundColor: [
-            "#f14b24", "#3b82f6", "#10b981", "#8b5cf6",
-            "#f59e0b", "#ec4899", "#06b6d4", "#64748b"
+            "#D93111", "#FF9A6B", "#C3BDFF", "#141414",
+            "#8B5CF6", "#15803d", "#EA580C", "#686460"
           ],
           borderWidth: 3,
           borderColor: "#ffffff"
@@ -926,11 +939,13 @@ function initSpcDashboard() {
         cutoutPercentage: 76,
         legend: { display: false },
         tooltips: {
-          backgroundColor: "#0f172a",
+          backgroundColor: "#141414",
           titleFontSize: 12,
+          titleFontFamily: "'Geist', sans-serif",
           bodyFontSize: 11.5,
-          cornerRadius: 4,
-          borderColor: "rgba(255, 255, 255, 0.12)",
+          bodyFontFamily: "'Geist', sans-serif",
+          cornerRadius: 6,
+          borderColor: "rgba(255, 255, 255, 0.15)",
           borderWidth: 1,
           xPadding: 10,
           yPadding: 8
@@ -945,7 +960,7 @@ function initSpcDashboard() {
     const box = document.getElementById("donut-breakdown-box");
     if (!box) return;
     const totalOos = defects.reduce((sum, d) => sum + (d.oosCount || 0), 0) || 1;
-    const colors = ["#f14b24", "#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899", "#06b6d4", "#64748b"];
+    const colors = ["#D93111", "#FF9A6B", "#C3BDFF", "#141414", "#8B5CF6", "#15803d", "#EA580C", "#686460"];
 
     box.innerHTML = defects.map((d, i) => {
       const code = d.id.replace("defect_", "E");
@@ -1119,8 +1134,8 @@ function initSpcDashboard() {
       const ctx = canvas.getContext("2d");
       const lastVal = values[n - 1];
       const isOut = (ucl != null && lastVal > ucl) || (lcl != null && lastVal < lcl);
-      const strokeColor = isOut ? "#ef4444" : "#f14b24";
-      const areaGrad = createAreaGradient(ctx, 65, strokeColor, 0.25, 0.0);
+      const strokeColor = isOut ? "#D93111" : "#D93111";
+      const areaGrad = createAreaGradient(ctx, 65, strokeColor, 0.22, 0.0);
 
       // Điểm phát sáng tại mẫu mới nhất
       const pointRadii = values.map((_, i) => i === n - 1 ? 4 : 0);
@@ -1146,7 +1161,7 @@ function initSpcDashboard() {
             },
             {
               data: Array(n).fill(ucl),
-              borderColor: "rgba(239, 68, 68, 0.5)",
+              borderColor: "rgba(217, 49, 17, 0.5)",
               borderWidth: 1,
               borderDash: [3, 2],
               pointRadius: 0,
@@ -1154,7 +1169,7 @@ function initSpcDashboard() {
             },
             {
               data: Array(n).fill(lcl),
-              borderColor: "rgba(239, 68, 68, 0.5)",
+              borderColor: "rgba(217, 49, 17, 0.5)",
               borderWidth: 1,
               borderDash: [3, 2],
               pointRadius: 0,
@@ -1274,23 +1289,23 @@ function initSpcDashboard() {
       ? chronBatches.map(b => b.oosCount || 0)
       : (defect.cChart?.values || []);
 
-    // 1. Biểu đồ X-bar
-    renderControlChart("chart-single-x", "X̄ (Trung bình nhóm)", labels, means, defect.uclX, defect.lclX, defect.xDoubleBar, "#f14b24");
+    // 1. Biểu đồ X-bar (Coral 600)
+    renderControlChart("chart-single-x", "X̄ (Trung bình nhóm)", labels, means, defect.uclX, defect.lclX, defect.xDoubleBar, "#D93111");
 
-    // 2. Biểu đồ R
-    renderControlChart("chart-single-r", "R (Khoảng biến thiên)", labels, ranges, defect.uclR, defect.lclR, defect.rBar, "#3b82f6");
+    // 2. Biểu đồ R (Peach)
+    renderControlChart("chart-single-r", "R (Khoảng biến thiên)", labels, ranges, defect.uclR, defect.lclR, defect.rBar, "#FF9A6B");
 
-    // 3. Biểu đồ P
+    // 3. Biểu đồ P (Periwinkle)
     const pUcl = uclPVal != null ? Number((uclPVal * 100).toFixed(2)) : 0;
     const pLcl = 0;
     const pCl = pBarVal != null ? Number((pBarVal * 100).toFixed(2)) : 0;
-    renderControlChart("chart-single-p", "P (Tỷ lệ phế phẩm %)", labels, pValues, pUcl, pLcl, pCl, "#8b5cf6");
+    renderControlChart("chart-single-p", "P (Tỷ lệ phế phẩm %)", labels, pValues, pUcl, pLcl, pCl, "#6359D9");
 
-    // 4. Biểu đồ C
+    // 4. Biểu đồ C (Ink)
     const cUcl = uclCVal != null ? Number(Number(uclCVal).toFixed(2)) : 0;
     const cLcl = defect.lclC ?? (defect.cChart?.lcl != null ? Number(defect.cChart.lcl) : 0);
     const cCl = cBarVal != null ? Number(Number(cBarVal).toFixed(2)) : 0;
-    renderControlChart("chart-single-c", "C (Số lỗi đếm được)", labels, cValues, cUcl, cLcl, cCl, "#10b981");
+    renderControlChart("chart-single-c", "C (Số lỗi đếm được)", labels, cValues, cUcl, cLcl, cCl, "#141414");
 
     // Render bảng lịch sử đo lường và bảng vi phạm
     renderBatchHistoryTable(defect);
@@ -1321,11 +1336,11 @@ function initSpcDashboard() {
       const uclLine = Array.isArray(ucl) ? ucl : Array(n).fill(ucl);
       const lclLine = Array.isArray(lcl) ? lcl : Array(n).fill(lcl);
 
-      // Điểm vi phạm phát sáng đỏ rực rỡ, điểm chuẩn tâm trắng viền màu
+      // Điểm vi phạm phát sáng Coral 600, điểm chuẩn tâm trắng viền màu
       const pointColors = values.map((v, i) => {
         const u = Array.isArray(ucl) ? ucl[i] : ucl;
         const l = Array.isArray(lcl) ? lcl[i] : lcl;
-        return (v > u || v < l) ? "#ef4444" : "#ffffff";
+        return (v > u || v < l) ? "#D93111" : "#ffffff";
       });
       const pointBorderColors = values.map((v, i) => {
         const u = Array.isArray(ucl) ? ucl[i] : ucl;
@@ -1363,7 +1378,7 @@ function initSpcDashboard() {
           const bottomPx = yAxis.getPixelForValue(lVal);
           const c = chart.ctx;
           c.save();
-          c.fillStyle = "rgba(16, 185, 129, 0.038)";
+          c.fillStyle = "rgba(21, 128, 61, 0.04)";
           c.fillRect(xAxis.left, Math.min(topPx, bottomPx), xAxis.right - xAxis.left, Math.abs(bottomPx - topPx));
           c.restore();
         }
@@ -1392,7 +1407,7 @@ function initSpcDashboard() {
             {
               label: "UCL",
               data: uclLine,
-              borderColor: "#ef4444",
+              borderColor: "#D93111",
               borderWidth: 1.5,
               borderDash: [5, 4],
               pointRadius: 0,
@@ -1401,7 +1416,7 @@ function initSpcDashboard() {
             {
               label: "CL",
               data: clLine,
-              borderColor: "#94a3b8",
+              borderColor: "#9CA3AF",
               borderWidth: 1.2,
               borderDash: [3, 3],
               pointRadius: 0,
@@ -1410,7 +1425,7 @@ function initSpcDashboard() {
             {
               label: "LCL",
               data: lclLine,
-              borderColor: "#ef4444",
+              borderColor: "#D93111",
               borderWidth: 1.5,
               borderDash: [5, 4],
               pointRadius: 0,
@@ -1424,14 +1439,16 @@ function initSpcDashboard() {
           legend: {
             display: true,
             position: "top",
-            labels: { fontColor: "#475569", fontSize: 11, boxWidth: 12, fontStyle: "600" }
+            labels: { fontColor: "#6B7280", fontSize: 11, boxWidth: 12, fontFamily: "'Geist', sans-serif", fontStyle: "600" }
           },
           tooltips: {
-            backgroundColor: "#0f172a",
+            backgroundColor: "#111827",
             titleFontSize: 12,
+            titleFontFamily: "'Geist', sans-serif",
             bodyFontSize: 11.5,
-            cornerRadius: 4,
-            borderColor: "rgba(255, 255, 255, 0.12)",
+            bodyFontFamily: "'Geist', sans-serif",
+            cornerRadius: 5,
+            borderColor: "rgba(255, 255, 255, 0.15)",
             borderWidth: 1,
             xPadding: 10,
             yPadding: 8,
@@ -1450,11 +1467,11 @@ function initSpcDashboard() {
           scales: {
             xAxes: [{
               gridLines: { display: false },
-              ticks: { fontColor: "#64748b", fontSize: 11, padding: 6 }
+              ticks: { fontColor: "#6B7280", fontSize: 11, padding: 6, fontFamily: "'Geist', sans-serif" }
             }],
             yAxes: [{
-              gridLines: { color: "rgba(241, 245, 249, 0.9)", borderDash: [3, 3], drawBorder: false },
-              ticks: { fontColor: "#64748b", fontSize: 11, padding: 6 }
+              gridLines: { color: "#F3F4F6", borderDash: [3, 3], drawBorder: false },
+              ticks: { fontColor: "#6B7280", fontSize: 11, padding: 6, fontFamily: "'Geist', sans-serif" }
             }]
           }
         }
@@ -1707,6 +1724,316 @@ function initSpcDashboard() {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  /* ==========================================================================
+     9. DATA EDITOR (CHỈNH SỬA DỮ LIỆU SPC)
+     ========================================================================== */
+  let editorDefectsList = [];
+  let currentEditorDefectId = "defect_1";
+  let editorCurrentBatches = [];
+
+  function initDataEditor() {
+    const defectSelect = document.getElementById("editor-defect-select");
+    const btnAddBatch = document.getElementById("editor-btn-add-batch");
+    const btnReset = document.getElementById("editor-btn-reset");
+    const btnSave = document.getElementById("editor-btn-save");
+
+    if (defectSelect) {
+      defectSelect.addEventListener("change", (e) => {
+        currentEditorDefectId = e.target.value;
+        loadEditorData(currentEditorDefectId);
+      });
+    }
+
+    if (btnAddBatch) {
+      btnAddBatch.addEventListener("click", () => {
+        const now = new Date();
+        const timeStr = now.toTimeString().split(" ")[0];
+        const nextIdx = editorCurrentBatches.length + 1;
+        const newBatch = {
+          ID: `BATCH-${String(nextIdx).padStart(3, "0")}`,
+          TIME: timeStr,
+          X1: null, X2: null, X3: null, X4: null, X5: null,
+          X6: null, X7: null, X8: null, X9: null, X10: null
+        };
+        editorCurrentBatches.unshift(newBatch);
+        renderEditorTable(editorCurrentBatches);
+        showEditorMsg("Đã thêm lô mới vào đầu bảng. Vui lòng nhập mẫu và bấm Lưu.", "warning");
+      });
+    }
+
+    if (btnSave) {
+      btnSave.addEventListener("click", saveEditorData);
+    }
+
+    if (btnReset) {
+      btnReset.addEventListener("click", resetEditorData);
+    }
+  }
+
+  async function loadEditorData(targetDefectId) {
+    const defectSelect = document.getElementById("editor-defect-select");
+    const statusChip = document.getElementById("editor-status-chip");
+    const inputName = document.getElementById("editor-input-name");
+    const inputLsl = document.getElementById("editor-input-lsl");
+    const inputUsl = document.getElementById("editor-input-usl");
+
+    try {
+      const res = await fetch("/api/editor/data");
+      if (!res.ok) throw new Error("Không thể nạp dữ liệu chỉnh sửa");
+      const list = await res.json();
+      editorDefectsList = list;
+
+      if (defectSelect) {
+        defectSelect.innerHTML = list.map(item => {
+          const code = item.config.id.replace("defect_", "E");
+          return `<option value="${item.config.id}">${code} - ${escapeHtml(item.config.errorName)}</option>`;
+        }).join("");
+      }
+
+      currentEditorDefectId = targetDefectId || currentEditorDefectId || list[0]?.config?.id || "defect_1";
+      if (defectSelect) defectSelect.value = currentEditorDefectId;
+
+      const currentItem = list.find(item => item.config.id === currentEditorDefectId) || list[0];
+      if (!currentItem) return;
+
+      if (inputName) inputName.value = currentItem.config.errorName || "";
+      if (inputLsl) inputLsl.value = currentItem.config.lsl != null ? currentItem.config.lsl : "";
+      if (inputUsl) inputUsl.value = currentItem.config.usl != null ? currentItem.config.usl : "";
+
+      if (statusChip) {
+        if (currentItem.config.isModified) {
+          statusChip.className = "stat-chip highlight";
+          statusChip.textContent = "Đã chỉnh sửa";
+        } else {
+          statusChip.className = "stat-chip";
+          statusChip.textContent = "Dữ liệu gốc";
+        }
+      }
+
+      editorCurrentBatches = JSON.parse(JSON.stringify(currentItem.batches || []));
+      renderEditorTable(editorCurrentBatches);
+    } catch (err) {
+      console.error("Lỗi nạp editor:", err);
+      showEditorMsg("Lỗi nạp: " + err.message, "danger");
+    }
+  }
+
+  function renderEditorTable(batches) {
+    const tbody = document.getElementById("editor-table-body");
+    if (!tbody) return;
+
+    if (!batches || batches.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="16" style="text-align:center; padding: 20px; color: var(--text-muted);">Chưa có lô đo lường nào. Nhấn "+ Thêm lô mới" để tạo.</td></tr>';
+      return;
+    }
+
+    const lsl = parseFloat(document.getElementById("editor-input-lsl")?.value);
+    const usl = parseFloat(document.getElementById("editor-input-usl")?.value);
+
+    tbody.innerHTML = batches.map((b, idx) => {
+      const vals = [];
+      for (let i = 1; i <= 10; i++) {
+        const v = b[`X${i}`];
+        if (v != null && !isNaN(v)) vals.push(Number(v));
+      }
+
+      const mean = vals.length > 0 ? (vals.reduce((s, x) => s + x, 0) / vals.length).toFixed(3) : "--";
+      const range = vals.length >= 2 ? (Math.max(...vals) - Math.min(...vals)).toFixed(3) : "--";
+
+      let sampleInputsHtml = "";
+      for (let i = 1; i <= 10; i++) {
+        const val = b[`X${i}`] != null ? b[`X${i}`] : "";
+        const numVal = parseFloat(val);
+        const isOos = !isNaN(numVal) && ((!isNaN(lsl) && numVal < lsl) || (!isNaN(usl) && numVal > usl));
+        const oosClass = isOos ? "out-of-spec" : "";
+        sampleInputsHtml += `
+          <td style="padding: 2px;">
+            <input type="number" step="any" class="editor-cell-input ${oosClass}" data-batch-idx="${idx}" data-sample-col="X${i}" value="${val}">
+          </td>
+        `;
+      }
+
+      return `
+        <tr data-batch-idx="${idx}">
+          <td style="text-align: center; color: var(--text-muted); font-size: 10px;">${idx + 1}</td>
+          <td><input type="text" class="editor-cell-input" data-batch-idx="${idx}" data-sample-col="ID" value="${escapeHtml(b.ID || '')}" style="text-align: left; font-weight: 600;"></td>
+          <td><input type="text" class="editor-cell-input" data-batch-idx="${idx}" data-sample-col="TIME" value="${escapeHtml(b.TIME || '')}"></td>
+          ${sampleInputsHtml}
+          <td class="batch-mean-cell" style="text-align: center; font-family: var(--font-mono); font-weight: 600; color: var(--text-dark);">${mean}</td>
+          <td class="batch-range-cell" style="text-align: center; font-family: var(--font-mono); font-weight: 600; color: var(--accent-peach-text);">${range}</td>
+          <td style="text-align: center;">
+            <button type="button" class="btn-del-batch" data-batch-idx="${idx}" title="Xóa lô này">✕</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    // Gắn sự kiện thay đổi giá trị từng ô
+    tbody.querySelectorAll(".editor-cell-input").forEach(input => {
+      input.addEventListener("input", onEditorCellChange);
+    });
+
+    // Gắn sự kiện nút xóa lô
+    tbody.querySelectorAll(".btn-del-batch").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const idx = parseInt(e.currentTarget.dataset.batchIdx, 10);
+        if (!isNaN(idx)) {
+          editorCurrentBatches.splice(idx, 1);
+          renderEditorTable(editorCurrentBatches);
+          showEditorMsg("Đã xóa lô khỏi bảng. Nhấn Lưu thay đổi để xác nhận.", "warning");
+        }
+      });
+    });
+  }
+
+  function onEditorCellChange(e) {
+    const input = e.target;
+    const batchIdx = parseInt(input.dataset.batchIdx, 10);
+    const col = input.dataset.sampleCol;
+    if (isNaN(batchIdx) || !editorCurrentBatches[batchIdx]) return;
+
+    if (col === "ID" || col === "TIME") {
+      editorCurrentBatches[batchIdx][col] = input.value.trim();
+    } else {
+      const val = input.value === "" ? null : parseFloat(input.value);
+      editorCurrentBatches[batchIdx][col] = isNaN(val) ? null : val;
+
+      // Cập nhật ngay Mean và Range cho dòng đó
+      const row = input.closest("tr");
+      if (row) {
+        const vals = [];
+        for (let i = 1; i <= 10; i++) {
+          const v = editorCurrentBatches[batchIdx][`X${i}`];
+          if (v != null && !isNaN(v)) vals.push(Number(v));
+        }
+        const meanEl = row.querySelector(".batch-mean-cell");
+        const rangeEl = row.querySelector(".batch-range-cell");
+        if (meanEl) meanEl.textContent = vals.length > 0 ? (vals.reduce((s, x) => s + x, 0) / vals.length).toFixed(3) : "--";
+        if (rangeEl) rangeEl.textContent = vals.length >= 2 ? (Math.max(...vals) - Math.min(...vals)).toFixed(3) : "--";
+
+        // Kiểm tra OOS highlight
+        const lsl = parseFloat(document.getElementById("editor-input-lsl")?.value);
+        const usl = parseFloat(document.getElementById("editor-input-usl")?.value);
+        const numVal = parseFloat(input.value);
+        const isOos = !isNaN(numVal) && ((!isNaN(lsl) && numVal < lsl) || (!isNaN(usl) && numVal > usl));
+        input.classList.toggle("out-of-spec", isOos);
+      }
+    }
+  }
+
+  async function saveEditorData() {
+    const btnSave = document.getElementById("editor-btn-save");
+    const inputName = document.getElementById("editor-input-name");
+    const inputLsl = document.getElementById("editor-input-lsl");
+    const inputUsl = document.getElementById("editor-input-usl");
+
+    const lsl = inputLsl?.value === "" ? null : parseFloat(inputLsl.value);
+    const usl = inputUsl?.value === "" ? null : parseFloat(inputUsl.value);
+    const errorName = inputName?.value.trim() || "";
+
+    if (isNaN(lsl) || isNaN(usl)) {
+      alert("Vui lòng nhập đầy đủ và hợp lệ giới hạn LSL và USL!");
+      return;
+    }
+
+    if (btnSave) {
+      btnSave.disabled = true;
+      btnSave.textContent = "Đang lưu...";
+    }
+
+    const payload = {
+      defectId: currentEditorDefectId,
+      config: {
+        errorName: errorName,
+        lsl: lsl,
+        usl: usl
+      },
+      batches: editorCurrentBatches
+    };
+
+    try {
+      const res = await fetch("/api/editor/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Lỗi khi lưu dữ liệu lên máy chủ");
+      const data = await res.json();
+      showEditorMsg("✅ " + data.message, "good");
+
+      // Cập nhật lại dropdown và chip trạng thái
+      const statusChip = document.getElementById("editor-status-chip");
+      if (statusChip) {
+        statusChip.className = "stat-chip highlight";
+        statusChip.textContent = "Đã chỉnh sửa";
+      }
+
+      // Cập nhật tên trong select
+      const defectSelect = document.getElementById("editor-defect-select");
+      if (defectSelect && defectSelect.selectedOptions[0]) {
+        const code = currentEditorDefectId.replace("defect_", "E");
+        defectSelect.selectedOptions[0].textContent = `${code} - ${errorName}`;
+      }
+
+      // Nạp lại dữ liệu SPC toàn cục
+      fetchSpcMatrixData();
+    } catch (err) {
+      alert("Lỗi lưu dữ liệu: " + err.message);
+      showEditorMsg("Lỗi: " + err.message, "danger");
+    } finally {
+      if (btnSave) {
+        btnSave.disabled = false;
+        btnSave.textContent = "💾 Lưu thay đổi";
+      }
+    }
+  }
+
+  async function resetEditorData() {
+    const code = currentEditorDefectId.replace("defect_", "E");
+    if (!confirm(`Bạn có chắc muốn khôi phục dữ liệu gốc từ Excel cho công đoạn ${code}? Mọi chỉnh sửa tùy biến của công đoạn này sẽ được hoàn tác.`)) {
+      return;
+    }
+
+    const btnReset = document.getElementById("editor-btn-reset");
+    if (btnReset) {
+      btnReset.disabled = true;
+      btnReset.textContent = "Đang khôi phục...";
+    }
+
+    try {
+      const res = await fetch("/api/editor/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defectId: currentEditorDefectId })
+      });
+      if (!res.ok) throw new Error("Lỗi khôi phục dữ liệu");
+      const data = await res.json();
+      showEditorMsg("↺ " + data.message, "good");
+
+      // Nạp lại editor và dashboard
+      await loadEditorData(currentEditorDefectId);
+      fetchSpcMatrixData();
+    } catch (err) {
+      alert("Lỗi khôi phục: " + err.message);
+    } finally {
+      if (btnReset) {
+        btnReset.disabled = false;
+        btnReset.textContent = "↺ Khôi phục gốc";
+      }
+    }
+  }
+
+  function showEditorMsg(msg, type) {
+    const el = document.getElementById("editor-save-msg");
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = "block";
+    el.style.color = type === "good" ? "var(--status-good)" : type === "warning" ? "var(--accent-peach-text)" : "var(--primary)";
+    setTimeout(() => {
+      el.style.display = "none";
+    }, 4500);
   }
 }
 

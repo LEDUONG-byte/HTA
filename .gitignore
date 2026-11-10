@@ -20,6 +20,7 @@ build/
 # Log files
 *.log
 virtual_spc_data.sqlite3
+user_edits.json
 
 # Package files
 *.jar

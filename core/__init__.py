@@ -12,7 +12,15 @@ from core.config import (
     VIRTUAL_DATA_DB_PATH,
     logger,
 )
-from core.data_loader import load_virtual_batches, parse_spec_limit, sync_fetch_all_defects
+from core.data_loader import (
+    clear_user_edits,
+    get_raw_defect_batches,
+    load_user_edits,
+    load_virtual_batches,
+    parse_spec_limit,
+    save_user_edits,
+    sync_fetch_all_defects,
+)
 from core.simulator import VirtualDataSimulator, clear_virtual_batches
 from core.spc_calculator import calculate_spc_for_single_sheet, timestamp_sort_key
 from core.websocket_manager import ConnectionManager, manager

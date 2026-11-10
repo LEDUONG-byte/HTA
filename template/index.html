@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="description" content="SPC Intelligent - Hệ thống giám sát chất lượng và kiểm soát quy trình thời gian thực">
   <title>Giám sát SPC</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f14b24'><rect width='24' height='24' rx='4'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23D93111'><rect width='24' height='24' rx='4'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.css">
   <link rel="stylesheet" href="../css/spc-modern.css">
   <link rel="stylesheet" href="/css/spc-modern.css">
 </head>
@@ -23,7 +28,7 @@
         </div>
       </div>
 
-      <div class="sidebar-group-title">GIÁM SÁT</div>
+      <div class="sidebar-group-title">WORKSPACE</div>
 
       <nav class="sidebar-nav">
         <!-- 1. Tổng quan -->
@@ -31,10 +36,10 @@
           <div class="nav-item-left">
             <span class="nav-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
               </svg>
             </span>
             <span>Tổng quan</span>
@@ -53,11 +58,14 @@
             </span>
             <span>SPC từng lỗi</span>
           </div>
-          <span id="spc-nav-chevron" class="nav-chevron">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </span>
+          <div class="nav-item-right">
+            <span class="nav-badge">8</span>
+            <span id="spc-nav-chevron" class="nav-chevron">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </span>
+          </div>
         </button>
 
         <!-- Submenu E1 - E8 -->
@@ -76,15 +84,16 @@
           </div>
         </button>
 
-        <!-- 4. Cài đặt -->
-        <button id="nav-btn-settings" class="nav-item-btn" type="button">
+        <!-- 4. Chỉnh sửa dữ liệu -->
+        <button id="nav-btn-editor" class="nav-item-btn" type="button">
           <div class="nav-item-left">
             <span class="nav-icon">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </span>
-            <span>Cài đặt</span>
+            <span>Chỉnh sửa</span>
           </div>
         </button>
       </nav>
@@ -412,32 +421,78 @@
         </div>
 
         <!-- ================================================================
-             VIEW 4: CÀI ĐẶT (SETTINGS & SPECS)
+             VIEW 4: CHỈNH SỬA DỮ LIỆU SPC (DATA EDITOR)
              ================================================================ -->
-        <div id="view-panel-settings" class="view-panel">
+        <div id="view-panel-editor" class="view-panel">
           <div class="content-card" style="height: 100%;">
-            <div class="content-card-header">
-              <h3 class="content-card-title">Quy chuẩn kỹ thuật &amp; giới hạn kiểm soát SPC</h3>
-              <span class="pill-badge pill-good">n = 10 mẫu/lô</span>
+            <!-- Header công cụ -->
+            <div class="content-card-header" style="flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h3 class="content-card-title">Chỉnh sửa dữ liệu SPC</h3>
+                <select id="editor-defect-select" class="filter-select" style="font-weight: 600; padding: 4px 10px;">
+                  <!-- Các loại lỗi E1 -> E8 được nạp tự động -->
+                </select>
+                <span id="editor-status-chip" class="stat-chip">Dữ liệu gốc</span>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="editor-btn-add-batch" class="chart-tab-btn" style="border: 1px solid var(--border-color); background: #ffffff; padding: 4px 10px;" type="button">
+                  + Thêm lô mới
+                </button>
+                <button id="editor-btn-reset" class="chart-tab-btn" style="border: 1px solid var(--border-color); background: #ffffff; padding: 4px 10px; color: var(--text-muted);" type="button">
+                  ↺ Khôi phục gốc
+                </button>
+                <button id="editor-btn-save" class="btn-simulator" style="padding: 5px 14px;" type="button">
+                  💾 Lưu thay đổi
+                </button>
+              </div>
             </div>
-            <div class="table-responsive">
-              <table class="modern-table">
+
+            <!-- Cấu hình thông số kỹ thuật (Spec limits) -->
+            <div class="editor-specs-bar" style="display: flex; align-items: center; gap: 14px; padding: 8px 14px; background: var(--bg-card-subtle); border-bottom: 1px solid var(--border-color); flex-shrink: 0; font-size: 11.5px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 600; color: var(--text-dark);">Tên công đoạn:</span>
+                <input type="text" id="editor-input-name" class="table-search-input" style="width: 220px; padding: 3px 8px;" placeholder="Tên loại lỗi / công đoạn">
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 600; color: var(--text-dark);">LSL:</span>
+                <input type="number" step="any" id="editor-input-lsl" class="table-search-input" style="width: 85px; padding: 3px 8px;" placeholder="LSL">
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 600; color: var(--text-dark);">USL:</span>
+                <input type="number" step="any" id="editor-input-usl" class="table-search-input" style="width: 85px; padding: 3px 8px;" placeholder="USL">
+              </div>
+
+              <div id="editor-save-msg" style="margin-left: auto; font-size: 11px; font-weight: 600; color: var(--status-good); display: none;"></div>
+            </div>
+
+            <!-- Bảng chỉnh sửa danh sách lô và 10 mẫu đo X1..X10 -->
+            <div class="table-responsive" style="border: none; border-radius: 0;">
+              <table class="modern-table editor-table">
                 <thead>
                   <tr>
-                    <th>Mã</th>
-                    <th>Tên công đoạn</th>
-                    <th>LSL</th>
-                    <th>USL</th>
-                    <th>UCL X̄</th>
-                    <th>CL X̄</th>
-                    <th>LCL X̄</th>
-                    <th>UCL R</th>
-                    <th>CL R</th>
-                    <th>LCL R</th>
+                    <th style="width: 40px; text-align: center;">STT</th>
+                    <th style="width: 100px;">Mã lô</th>
+                    <th style="width: 90px;">Thời gian</th>
+                    <th style="width: 60px; text-align: center;">X1</th>
+                    <th style="width: 60px; text-align: center;">X2</th>
+                    <th style="width: 60px; text-align: center;">X3</th>
+                    <th style="width: 60px; text-align: center;">X4</th>
+                    <th style="width: 60px; text-align: center;">X5</th>
+                    <th style="width: 60px; text-align: center;">X6</th>
+                    <th style="width: 60px; text-align: center;">X7</th>
+                    <th style="width: 60px; text-align: center;">X8</th>
+                    <th style="width: 60px; text-align: center;">X9</th>
+                    <th style="width: 60px; text-align: center;">X10</th>
+                    <th style="width: 70px; text-align: center;">X̄ (TB)</th>
+                    <th style="width: 70px; text-align: center;">R</th>
+                    <th style="width: 50px; text-align: center;">Xóa</th>
                   </tr>
                 </thead>
-                <tbody id="specs-table-body">
-                  <tr><td colspan="10" style="text-align:center; color: #8c919d; padding: 20px;">Đang tải thông số quy chuẩn...</td></tr>
+                <tbody id="editor-table-body">
+                  <tr><td colspan="16" style="text-align: center; padding: 20px; color: var(--text-muted);">Đang nạp dữ liệu chỉnh sửa...</td></tr>
                 </tbody>
               </table>
             </div>

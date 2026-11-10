@@ -1,11 +1,13 @@
 """Các endpoint API REST và kết nối WebSocket cho hệ thống SPC Dashboard."""
 
 import asyncio
+from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
 from core.cache_manager import get_cached_spc_data, invalidate_cache
 from core.config import CACHE_TTL_SECONDS, logger
+from core.data_loader import clear_user_edits, get_raw_defect_batches, load_user_edits, save_user_edits
 from core.websocket_manager import manager
 from core.simulator import VirtualDataSimulator
 
@@ -70,3 +72,49 @@ async def websocket_dashboard_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"Lỗi trên kết nối WebSocket: {e}")
         manager.disconnect(websocket)
+
+
+@router.get("/api/editor/data")
+async def get_editor_data(defect_id: str = None):
+    """Trả về dữ liệu thô (metadata + các lô đo X1..X10) để người dùng xem và chỉnh sửa."""
+    data = await asyncio.to_thread(get_raw_defect_batches, defect_id)
+    return JSONResponse(content=data)
+
+
+@router.post("/api/editor/save")
+async def save_editor_data(payload: Dict[str, Any]):
+    """Lưu dữ liệu tùy chỉnh của người dùng, làm mới cache và tính lại SPC tức thì."""
+    defect_id = payload.get("defectId")
+    if not defect_id:
+        raise HTTPException(status_code=400, detail="Thiếu trường bắt buộc defectId")
+
+    edits = await asyncio.to_thread(load_user_edits)
+    edits[defect_id] = {
+        "errorName": payload.get("config", {}).get("errorName"),
+        "lsl": payload.get("config", {}).get("lsl"),
+        "usl": payload.get("config", {}).get("usl"),
+        "batches": payload.get("batches", [])
+    }
+    await asyncio.to_thread(save_user_edits, edits)
+    invalidate_cache()
+    # Tính toán lại dữ liệu mới nhất
+    spc_data = await get_cached_spc_data()
+    return JSONResponse(content={
+        "status": "success",
+        "message": "Đã lưu và cập nhật chỉ số SPC thành công",
+        "summary": spc_data.get("summary")
+    })
+
+
+@router.post("/api/editor/reset")
+async def reset_editor_data(payload: Dict[str, Any] = None):
+    """Khôi phục lại dữ liệu nguyên bản từ file Excel cho một hoặc toàn bộ loại lỗi."""
+    defect_id = payload.get("defectId") if payload else None
+    await asyncio.to_thread(clear_user_edits, defect_id)
+    invalidate_cache()
+    spc_data = await get_cached_spc_data()
+    return JSONResponse(content={
+        "status": "success",
+        "message": "Đã khôi phục dữ liệu gốc từ Excel thành công",
+        "summary": spc_data.get("summary")
+    })

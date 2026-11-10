@@ -26,10 +26,13 @@ CACHE_TTL_SECONDS = 5.0
 
 # Đường dẫn tệp dữ liệu nguồn (ưu tiên tệp nằm cùng thư mục HTA.exe khi đóng gói)
 if getattr(sys, "frozen", False):
+    import os
     EXE_DIR = Path(sys.executable).resolve().parent
     EXTERNAL_WORKBOOK = EXE_DIR / "ER_TABLE.xlsx"
     DATA_WORKBOOK_PATH = EXTERNAL_WORKBOOK if EXTERNAL_WORKBOOK.is_file() else (ROOT_PATH / "ER_TABLE.xlsx")
+    USER_EDITS_PATH = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "HTA" / "user_edits.json"
 else:
     DATA_WORKBOOK_PATH = ROOT_PATH / "ER_TABLE.xlsx"
+    USER_EDITS_PATH = ROOT_PATH / "user_edits.json"
 
 VIRTUAL_DATA_DB_PATH = DATABASE_PATH
