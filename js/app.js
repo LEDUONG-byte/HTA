@@ -4,7 +4,7 @@
  * Trực quan hóa dữ liệu cao cấp, tỷ lệ kích thước cân đối và tương tác mượt mà
  */
 
-document.addEventListener("DOMContentLoaded", () => {
+function initSpcDashboard() {
   // Bộ nhớ đệm các instance biểu đồ và chữ ký dữ liệu
   const chartInstances = {};
   const chartSignatures = {};
@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentView = "overview"; // 'overview' | 'defect' | 'log' | 'settings'
   let currentDefectId = null;
   let spcData = null;
+  let prevKpiSnapshot = null;
   let lastDataTime = Date.now();
   let currentOverviewTab = "corr"; // 'corr' | 'status' | 'share'
 
@@ -383,8 +384,6 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ==========================================================================
      4. RENDER VIEW 1: TỔNG QUAN (OVERVIEW)
      ========================================================================== */
-  let prevKpiSnapshot = null;
-
   function updateTrendBadge(elementId, delta, unit = "%") {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -1676,4 +1675,10 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initSpcDashboard);
+} else {
+  initSpcDashboard();
+}
